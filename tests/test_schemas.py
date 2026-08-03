@@ -1,10 +1,15 @@
+import pandas as pd
+import pytest
+
 from survey.schemas import (
     BINARY,
+    CAVEATS,
     LIKERT_5,
     LIKERT_ORDER,
     RATING_5,
     RATING_ORDER,
     SCALES,
+    SCHEMAS,
     TERM_11,
     WORKLOAD_4,
 )
@@ -111,3 +116,55 @@ def test_scales_aponta_para_os_dicionarios_corretos():
     assert SCALES["rating"] is RATING_5
     assert SCALES["workload"] is WORKLOAD_4
     assert SCALES["term"] is TERM_11
+
+
+NOMES = ["students_2025_06", "researchers_2025_06", "students_researchers_2026_04"]
+
+
+@pytest.mark.parametrize("nome", NOMES)
+def test_toda_pergunta_declarada_existe_no_csv(nome):
+    schema = SCHEMAS[nome]
+    colunas = pd.read_csv(schema["file"], nrows=0).columns.str.strip()
+    faltando = [q for q, _ in schema["columns"].values() if q not in colunas]
+    assert faltando == []
+
+
+@pytest.mark.parametrize("nome", NOMES)
+def test_todo_tipo_declarado_e_conhecido(nome):
+    tipos = {tipo for _, tipo in SCHEMAS[nome]["columns"].values()}
+    assert tipos <= {"likert", "binary", "rating", "workload", "term", "categorical"}
+
+
+@pytest.mark.parametrize(
+    "nome,esperado",
+    [("students_2025_06", 19), ("researchers_2025_06", 16), ("students_researchers_2026_04", 27)],
+)
+def test_quantidade_de_variaveis_declaradas(nome, esperado):
+    assert len(SCHEMAS[nome]["columns"]) == esperado
+
+
+def test_identificacao_por_ano_e_mes_bate_com_o_primeiro_respondente():
+    for nome, schema in SCHEMAS.items():
+        bruto = pd.read_csv(schema["file"])["Timestamp"].str.replace(" GMT-3", "", regex=False)
+        primeiro = pd.to_datetime(bruto, format="%Y/%m/%d %I:%M:%S %p").min()
+        assert (primeiro.year, primeiro.month) == (schema["year"], schema["month"]), nome
+        assert nome.endswith("%d_%02d" % (schema["year"], schema["month"]))
+
+
+def test_considered_quitting_muda_de_escala_entre_os_formularios():
+    assert SCHEMAS["researchers_2025_06"]["columns"]["considered_quitting"][1] == "binary"
+    assert SCHEMAS["students_researchers_2026_04"]["columns"]["considered_quitting"][1] == "likert"
+
+
+def test_lab_helps_e_lab_helped_nao_compartilham_nome_canonico():
+    assert "lab_helped" in SCHEMAS["researchers_2025_06"]["columns"]
+    assert "lab_helps" not in SCHEMAS["researchers_2025_06"]["columns"]
+    assert "lab_helps" in SCHEMAS["students_2025_06"]["columns"]
+    assert "lab_helps" in SCHEMAS["students_researchers_2026_04"]["columns"]
+
+
+def test_ressalvas_apontam_para_variaveis_existentes():
+    declaradas = set()
+    for schema in SCHEMAS.values():
+        declaradas |= set(schema["columns"])
+    assert set(CAVEATS) <= declaradas
