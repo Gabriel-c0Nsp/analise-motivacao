@@ -3,6 +3,7 @@
 from survey.descriptive import (
     common_vars,
     compare_freq,
+    compare_items,
     crosstab_counts,
     crosstab_rowperc,
     freq_table,
@@ -36,6 +37,7 @@ __all__ = [
     "clean_text",
     "common_vars",
     "compare_freq",
+    "compare_items",
     "crosstab_counts",
     "crosstab_rowperc",
     "freq_table",

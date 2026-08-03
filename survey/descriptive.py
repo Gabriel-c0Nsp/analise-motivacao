@@ -61,6 +61,23 @@ def common_vars(*names):
     return sorted(set.intersection(*declared))
 
 
+def _check_same_kind(items):
+    """Recusa quando o tipo declarado diverge entre os itens comparados.
+
+    `items` é uma lista de tuplas `(rotulo_do_dataset, nome_canonico, tipo)`.
+    Compartilhada por `compare_freq`, em que o nome é o mesmo em cada item, e
+    por `compare_items`, em que ele pode variar.
+    """
+    if len({kind for _, _, kind in items}) <= 1:
+        return
+    detail = ", ".join("%s (%s) em %s" % (name, kind, label) for label, name, kind in items)
+    if {name for _, name, _ in items} == {"considered_quitting"}:
+        hint = "Use considered_quitting_bin, presente nos dois datasets com o mesmo tipo, para comparar."
+    else:
+        hint = "Use common_vars() para ver o que dá para comparar."
+    raise KeyError("tipo diferente entre os itens comparados: %s. %s" % (detail, hint))
+
+
 def compare_freq(datasets, name, labels=True):
     """Percentual da variável lado a lado, uma coluna por dataset."""
     frames = [resolve(item) for item in datasets]
@@ -72,14 +89,7 @@ def compare_freq(datasets, name, labels=True):
             % (name, ", ".join(absent))
         )
 
-    kinds_by_label = {frame.attrs["label"]: frame.attrs["kinds"][name] for frame in frames}
-    if len(set(kinds_by_label.values())) > 1:
-        detail = ", ".join("%s em %s" % (kind, label) for label, kind in kinds_by_label.items())
-        if name == "considered_quitting":
-            hint = "Use considered_quitting_bin, presente nos dois datasets com o mesmo tipo, para comparar."
-        else:
-            hint = "Use common_vars() para ver o que dá para comparar."
-        raise KeyError("%r tem tipo diferente em cada dataset: %s. %s" % (name, detail, hint))
+    _check_same_kind([(frame.attrs["label"], name, frame.attrs["kinds"][name]) for frame in frames])
 
     caveat = CAVEATS.get(name)
     if caveat:
@@ -87,5 +97,45 @@ def compare_freq(datasets, name, labels=True):
 
     columns = {
         frame.attrs["label"]: freq_table(frame, name, labels=labels)["percent"] for frame in frames
+    }
+    return pd.DataFrame(columns).fillna(0)
+
+
+def compare_items(pairs, labels=True):
+    """Compara itens de perguntas diferentes, declarando o que está sendo comparado.
+
+    Cada item de `pairs` é uma tupla `(dataset, nome_canonico)`. Ao contrário de
+    `compare_freq`, os itens não precisam ser a mesma variável: a função existe
+    justamente para permitir comparar perguntas distintas entre formulários,
+    desde que a comparação seja declarada com o texto completo de cada pergunta,
+    lido de `SCHEMAS`, e, quando houver, a ressalva de `CAVEATS` sobre o que
+    cada item mede.
+    """
+    frames = [resolve(dataset) for dataset, _ in pairs]
+
+    for frame, (_, name) in zip(frames, pairs):
+        if name not in frame.columns:
+            raise KeyError(
+                "%r não existe em %s. Use common_vars() para ver o que dá para comparar."
+                % (name, frame.attrs["label"])
+            )
+
+    _check_same_kind(
+        [(frame.attrs["label"], name, frame.attrs["kinds"][name]) for frame, (_, name) in zip(frames, pairs)]
+    )
+
+    print("Comparando itens de perguntas diferentes:")
+    for frame, (_, name) in zip(frames, pairs):
+        question, _ = SCHEMAS[frame.attrs["dataset"]]["columns"][name]
+        print("  %s (%s): %s" % (frame.attrs["label"], name, question))
+
+    for _, name in pairs:
+        caveat = CAVEATS.get(name)
+        if caveat:
+            print("Ressalva sobre %s: %s" % (name, caveat))
+
+    columns = {
+        "%s (%s)" % (frame.attrs["label"], name): freq_table(frame, name, labels=labels)["percent"]
+        for frame, (_, name) in zip(frames, pairs)
     }
     return pd.DataFrame(columns).fillna(0)

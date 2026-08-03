@@ -4,6 +4,7 @@ import pytest
 from survey.descriptive import (
     common_vars,
     compare_freq,
+    compare_items,
     crosstab_counts,
     crosstab_rowperc,
     freq_table,
@@ -151,3 +152,55 @@ def test_compare_freq_considered_quitting_bin_compara_desistencia_entre_2025_e_2
     assert tabela.loc["Sim", "Bolsistas 2025"] == 48.0
     assert tabela.loc["Não", "Pesquisa 2026"] == 59.0
     assert tabela.loc["Sim", "Pesquisa 2026"] == 41.0
+
+
+PONTE = [("students_2025_06", "lab_helps"), ("researchers_2025_06", "lab_helped")]
+
+
+def test_compare_items_nomeia_a_coluna_com_dataset_e_item(datasets):
+    tabela = compare_items(PONTE)
+    assert list(tabela.columns) == ["Alunos 2025 (lab_helps)", "Bolsistas 2025 (lab_helped)"]
+
+
+def test_compare_items_cada_coluna_soma_cem(datasets):
+    assert compare_items(PONTE).sum().round().eq(100).all()
+
+
+def test_compare_items_reproduz_as_distribuicoes_conhecidas(datasets):
+    tabela = compare_items(PONTE)
+    alunos = tabela["Alunos 2025 (lab_helps)"]
+    bolsistas = tabela["Bolsistas 2025 (lab_helped)"]
+    assert alunos["Concordo totalmente"] == 44.8
+    assert alunos["Concordo parcialmente"] == 41.4
+    assert alunos["Discordo totalmente"] == 3.4
+    assert bolsistas["Concordo totalmente"] == 44.0
+    assert bolsistas["Concordo parcialmente"] == 36.0
+    assert bolsistas["Discordo totalmente"] == 0.0
+
+
+def test_compare_items_declara_o_texto_de_cada_pergunta(datasets, capsys):
+    compare_items(PONTE)
+    saida = capsys.readouterr().out
+    assert "ajuda (ou ajudaria)" in saida
+    assert "ajudou" in saida
+    assert "Alunos 2025" in saida
+    assert "Bolsistas 2025" in saida
+
+
+def test_compare_items_imprime_a_ressalva_do_item(datasets, capsys):
+    compare_items(PONTE)
+    assert "expectativa" in capsys.readouterr().out
+
+
+def test_compare_items_recusa_item_ausente_no_dataset(datasets):
+    with pytest.raises(KeyError, match="lab_helped"):
+        compare_items([("students_2025_06", "lab_helped")])
+
+
+def test_compare_items_recusa_tipos_divergentes(datasets):
+    par = [
+        ("researchers_2025_06", "considered_quitting"),
+        ("students_researchers_2026_04", "considered_quitting"),
+    ]
+    with pytest.raises(KeyError, match="tipo"):
+        compare_items(par)
