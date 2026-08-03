@@ -78,6 +78,56 @@ def _check_same_kind(items):
     raise KeyError("tipo diferente entre os itens comparados: %s. %s" % (detail, hint))
 
 
+def _ordered_labels(tables, kind, labels):
+    """Devolve os rótulos da comparação na ordem certa, ou `None` para deixar o índice como está.
+
+    Sem essa ordenação explícita, `pd.DataFrame` monta a união dos índices das
+    tabelas em ordem alfabética sempre que os lados têm rótulos diferentes, o
+    que embaralha uma escala Likert. Itens não categóricos com rótulo de texto
+    seguem a ordem da escala, lida de `_labels_for`. Itens categóricos não têm
+    escala, então a ordem passa a ser por contagem total decrescente somando
+    as tabelas comparadas, com empate na ordem em que o rótulo apareceu pela
+    primeira vez. Índice numérico (`labels=False` fora de categórica) já sai
+    crescente da união do pandas e não precisa de tratamento especial.
+    """
+    if kind != "categorical" and labels:
+        vistos = {rotulo for tabela in tables for rotulo in tabela.index}
+        return [rotulo for rotulo in _labels_for(kind).values() if rotulo in vistos]
+
+    if kind != "categorical":
+        return None
+
+    totais = {}
+    ordem = []
+    for tabela in tables:
+        for rotulo, contagem in tabela["count"].items():
+            if rotulo not in totais:
+                ordem.append(rotulo)
+                totais[rotulo] = 0
+            totais[rotulo] += contagem
+    ordem.sort(key=lambda rotulo: totais[rotulo], reverse=True)
+    return ordem
+
+
+def _compare_table(entries, labels):
+    """Monta a tabela de percentuais comparando itens, uma coluna por entrada.
+
+    `entries` é uma lista de tuplas `(rotulo_da_coluna, frame, nome_canonico)`,
+    todas do mesmo tipo declarado. Reordena o índice pela ordem certa antes de
+    devolver, em vez de deixar `pd.DataFrame` decidir a ordem da união.
+    """
+    tabelas = [freq_table(frame, name, labels=labels) for _, frame, name in entries]
+    kind = entries[0][1].attrs["kinds"][entries[0][2]]
+
+    columns = {coluna: tabela["percent"] for (coluna, _, _), tabela in zip(entries, tabelas)}
+    tabela_final = pd.DataFrame(columns).fillna(0)
+
+    ordem = _ordered_labels(tabelas, kind, labels)
+    if ordem is not None:
+        tabela_final = tabela_final.reindex(ordem)
+    return tabela_final
+
+
 def compare_freq(datasets, name, labels=True):
     """Percentual da variável lado a lado, uma coluna por dataset."""
     frames = [resolve(item) for item in datasets]
@@ -95,10 +145,8 @@ def compare_freq(datasets, name, labels=True):
     if caveat:
         print("Ressalva sobre %s: %s" % (name, caveat))
 
-    columns = {
-        frame.attrs["label"]: freq_table(frame, name, labels=labels)["percent"] for frame in frames
-    }
-    return pd.DataFrame(columns).fillna(0)
+    entries = [(frame.attrs["label"], frame, name) for frame in frames]
+    return _compare_table(entries, labels)
 
 
 def compare_items(pairs, labels=True):
@@ -134,8 +182,7 @@ def compare_items(pairs, labels=True):
         if caveat:
             print("Ressalva sobre %s: %s" % (name, caveat))
 
-    columns = {
-        "%s (%s)" % (frame.attrs["label"], name): freq_table(frame, name, labels=labels)["percent"]
-        for frame, (_, name) in zip(frames, pairs)
-    }
-    return pd.DataFrame(columns).fillna(0)
+    entries = [
+        ("%s (%s)" % (frame.attrs["label"], name), frame, name) for frame, (_, name) in zip(frames, pairs)
+    ]
+    return _compare_table(entries, labels)

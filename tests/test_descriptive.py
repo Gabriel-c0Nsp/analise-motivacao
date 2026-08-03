@@ -204,3 +204,43 @@ def test_compare_items_recusa_tipos_divergentes(datasets):
     ]
     with pytest.raises(KeyError, match="tipo"):
         compare_items(par)
+
+
+def test_compare_freq_mantem_a_ordem_da_escala_mesmo_com_rotulos_diferentes(datasets):
+    tabela = compare_freq(["students_2025_06", "students_researchers_2026_04"], "welcomed_by_faculty")
+    assert list(tabela.index) == [
+        "Discordo totalmente",
+        "Discordo parcialmente",
+        "Nem concordo nem discordo",
+        "Concordo parcialmente",
+        "Concordo totalmente",
+    ]
+
+
+def test_compare_items_mantem_a_ordem_da_escala(datasets):
+    tabela = compare_items(PONTE)
+    assert list(tabela.index) == [
+        "Discordo totalmente",
+        "Discordo parcialmente",
+        "Nem concordo nem discordo",
+        "Concordo parcialmente",
+        "Concordo totalmente",
+    ]
+
+
+def test_compare_freq_categorica_ordena_por_contagem_total_decrescente(datasets):
+    tabela = compare_freq(["students_2025_06", "researchers_2025_06"], "age_range")
+    assert list(tabela.index) == [
+        "18 - 21 anos",
+        "22 - 25 anos",
+        "Menos de 18 anos",
+        "Mais de 30 anos",
+        "26 - 30 anos",
+    ]
+
+
+def test_compare_freq_sem_rotulos_mantem_indice_numerico_crescente(datasets):
+    tabela = compare_freq(
+        ["students_2025_06", "students_researchers_2026_04"], "welcomed_by_faculty", labels=False
+    )
+    assert list(tabela.index) == [1, 2, 3, 4, 5]
