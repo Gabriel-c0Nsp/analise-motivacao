@@ -2,3 +2,9 @@ ambiente-virtual
 anotacoes.txt
 todos.txt
 CLAUDE.local.md
+.remember
+.claude
+.superpowers
+docs/superpowers
+.pytest_cache
+__pycache__
