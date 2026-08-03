@@ -36,12 +36,20 @@ def freq_table(dataset, name, labels=True):
 
 
 def crosstab_counts(dataset, a, b):
-    """Tabela de contagens cruzando duas variáveis."""
+    """Tabela de contagens cruzando duas variáveis.
+
+    Linhas com valor ausente em `a` ou em `b` ficam de fora, então o total
+    da tabela pode ser menor que o número de respostas do dataset.
+    """
     frame = resolve(dataset)
     return pd.crosstab(frame[a], frame[b])
 
 
 def crosstab_rowperc(dataset, a, b):
-    """Tabela de percentuais por linha, cada linha somando 100."""
+    """Tabela de percentuais por linha, cada linha somando 100.
+
+    Herda de `crosstab_counts` o descarte de linhas com valor ausente em
+    `a` ou em `b`.
+    """
     table = crosstab_counts(dataset, a, b)
     return (table.div(table.sum(axis=1), axis=0) * 100).round(1)

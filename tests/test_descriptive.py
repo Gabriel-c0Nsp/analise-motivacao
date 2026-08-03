@@ -1,3 +1,4 @@
+import pandas as pd
 import pytest
 
 from survey.descriptive import crosstab_counts, crosstab_rowperc, freq_table
@@ -40,6 +41,17 @@ def test_freq_table_sem_rotulos_devolve_o_indice_numerico(datasets):
     assert list(tabela.index) == [2, 3, 4, 5]
 
 
+def test_freq_table_categorica_ordena_por_frequencia(datasets):
+    tabela = freq_table("students_2025_06", "age_range")
+    assert list(tabela.index) == [
+        "18 - 21 anos",
+        "22 - 25 anos",
+        "Menos de 18 anos",
+        "Mais de 30 anos",
+    ]
+    assert round(tabela["percent"].sum()) == 100
+
+
 def test_crosstab_counts_preserva_o_total(datasets):
     tabela = crosstab_counts("students_2025_06", "participates_lab", "lab_helps")
     assert tabela.values.sum() == 29
@@ -48,6 +60,15 @@ def test_crosstab_counts_preserva_o_total(datasets):
 def test_crosstab_rowperc_cada_linha_soma_cem(datasets):
     tabela = crosstab_rowperc("students_2025_06", "participates_lab", "lab_helps")
     assert tabela.sum(axis=1).round().eq(100).all()
+
+
+def test_crosstab_counts_descarta_linha_com_ausente_em_qualquer_variavel():
+    frame = pd.DataFrame({
+        "a": [1, 2, None, 1, 2],
+        "b": [1, None, 2, 1, 2],
+    })
+    tabela = crosstab_counts(frame, "a", "b")
+    assert tabela.values.sum() == 3
 
 
 def test_funcoes_aceitam_dataframe_alem_do_nome(datasets):
