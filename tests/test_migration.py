@@ -88,7 +88,7 @@ def test_cruzamentos_de_alunos_batem_com_o_notebook_anterior(datasets, caso):
         _antigo(arquivo, pergunta_b, tipo_b),
     )
     obtido = crosstab_counts("students_2025_06", nome_a, nome_b)
-    assert obtido.values.tolist() == esperado.values.tolist()
+    pd.testing.assert_frame_equal(obtido, esperado, check_names=False)
 
 
 @pytest.mark.parametrize("caso", CRUZAMENTOS_BOLSISTAS)
@@ -100,7 +100,7 @@ def test_cruzamentos_de_bolsistas_batem_com_o_notebook_anterior(datasets, caso):
         _antigo(arquivo, pergunta_b, tipo_b),
     )
     obtido = crosstab_counts("researchers_2025_06", nome_a, nome_b)
-    assert obtido.values.tolist() == esperado.values.tolist()
+    pd.testing.assert_frame_equal(obtido, esperado, check_names=False)
 
 
 def test_percentual_por_linha_bate_com_o_notebook_anterior(datasets):
@@ -111,4 +111,4 @@ def test_percentual_por_linha_bate_com_o_notebook_anterior(datasets):
     )
     esperado = (esperado.div(esperado.sum(axis=1), axis=0) * 100).round(1)
     obtido = crosstab_rowperc("students_2025_06", "participates_lab", "lab_helps")
-    assert obtido.values.tolist() == esperado.values.tolist()
+    pd.testing.assert_frame_equal(obtido, esperado, check_names=False)
