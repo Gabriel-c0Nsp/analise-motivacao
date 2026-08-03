@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from survey.loading import LOADED, clean_text, load_all, load_survey, resolve
+from survey.loading import LOADED, _print_report, clean_text, load_all, load_survey, resolve
 from survey.schemas import SCHEMAS
 
 TAMANHOS = {
@@ -75,6 +75,54 @@ def test_attrs_guardam_a_identificacao_do_dataset(datasets):
 def test_nenhuma_conversao_ficou_sem_mapeamento(datasets):
     for nome, frame in datasets.items():
         assert frame.attrs["conversion_report"] == [], nome
+
+
+def test_conversion_report_registra_valor_fora_da_escala(tmp_path):
+    question = SCHEMAS["students_2025_06"]["columns"]["school_base"][0]
+    path = tmp_path / "sintetico.csv"
+    pd.DataFrame({question: ["Concordo totalmente", "Talvez"]}).to_csv(path, index=False)
+
+    schema = dict(SCHEMAS["students_2025_06"])
+    schema["file"] = str(path)
+    schema["columns"] = {"school_base": (question, "likert")}
+
+    frame = load_survey(schema)
+
+    assert frame.attrs["conversion_report"] == [("school_base", ["Talvez"])]
+
+
+def test_print_report_mostra_o_valor_que_nao_bateu(tmp_path, capsys):
+    question = SCHEMAS["students_2025_06"]["columns"]["school_base"][0]
+    path = tmp_path / "sintetico.csv"
+    pd.DataFrame({question: ["Concordo totalmente", "Talvez"]}).to_csv(path, index=False)
+
+    schema = dict(SCHEMAS["students_2025_06"])
+    schema["file"] = str(path)
+    schema["columns"] = {"school_base": (question, "likert")}
+
+    frame = load_survey(schema)
+    _print_report("sintetico", frame)
+
+    saida = capsys.readouterr().out
+    assert "Talvez" in saida
+
+
+def test_considered_quitting_bin_preserva_ausente_em_vez_de_zero(tmp_path):
+    question = SCHEMAS["students_researchers_2026_04"]["columns"]["considered_quitting"][0]
+    path = tmp_path / "sintetico.csv"
+    pd.DataFrame(
+        {question: ["Concordo totalmente", "Discordo totalmente", None]}
+    ).to_csv(path, index=False)
+
+    schema = dict(SCHEMAS["students_researchers_2026_04"])
+    schema["file"] = str(path)
+    schema["columns"] = {"considered_quitting": (question, "likert")}
+
+    frame = load_survey(schema)
+
+    assert frame["considered_quitting_bin"].iloc[0] == 1.0
+    assert frame["considered_quitting_bin"].iloc[1] == 0.0
+    assert pd.isna(frame["considered_quitting_bin"].iloc[2])
 
 
 def test_pergunta_ausente_no_csv_falha_com_mensagem_clara():
