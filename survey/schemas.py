@@ -1,4 +1,4 @@
-"""Escalas de conversao e esquemas dos formularios da pesquisa."""
+"""Escalas de conversão e esquemas dos formulários da pesquisa."""
 
 LIKERT_5 = {
     "Discordo totalmente": 1,
@@ -30,8 +30,8 @@ RATING_5 = {
 
 RATING_ORDER = ["Muito ruim", "Ruim", "Neutro", "Boa", "Muito boa"]
 
-# "Adequada" e "Boa" medem coisas diferentes (adequacao e qualidade). A ordem
-# adotada esta registrada nas limitacoes da pesquisa.
+# "Adequada" e "Boa" medem coisas diferentes (adequação versus qualidade),
+# tornando a ordem entre as duas debatível.
 WORKLOAD_4 = {
     "Inadequada": 1,
     "Adequada": 2,
@@ -61,6 +61,6 @@ SCALES = {
     "term": TERM_11,
 }
 
-# Resposta Likert a partir da qual "ja pensei em desistir" equivale ao "Sim"
-# da versao binaria de 2025.
+# Resposta Likert a partir da qual "já pensei em desistir" equivale ao "Sim"
+# da versão binária de 2025.
 QUITTING_AGREEMENT_THRESHOLD = 4

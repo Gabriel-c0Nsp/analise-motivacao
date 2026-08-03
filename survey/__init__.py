@@ -1,1 +1,1 @@
-"""Pacote de analise dos formularios da pesquisa de motivacao."""
+"""Pacote de análise dos formulários da pesquisa de motivação."""
