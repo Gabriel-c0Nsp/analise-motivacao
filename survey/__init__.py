@@ -1,6 +1,12 @@
 """Pacote de análise dos formulários da pesquisa de motivação."""
 
-from survey.descriptive import crosstab_counts, crosstab_rowperc, freq_table
+from survey.descriptive import (
+    common_vars,
+    compare_freq,
+    crosstab_counts,
+    crosstab_rowperc,
+    freq_table,
+)
 from survey.loading import LOADED, clean_text, load_all, load_survey, resolve
 from survey.schemas import (
     BINARY,
@@ -28,6 +34,8 @@ __all__ = [
     "TERM_11",
     "WORKLOAD_4",
     "clean_text",
+    "common_vars",
+    "compare_freq",
     "crosstab_counts",
     "crosstab_rowperc",
     "freq_table",

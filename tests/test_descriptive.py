@@ -1,7 +1,13 @@
 import pandas as pd
 import pytest
 
-from survey.descriptive import crosstab_counts, crosstab_rowperc, freq_table
+from survey.descriptive import (
+    common_vars,
+    compare_freq,
+    crosstab_counts,
+    crosstab_rowperc,
+    freq_table,
+)
 from survey.loading import load_all
 
 
@@ -82,3 +88,50 @@ def test_pacote_survey_reexporta_as_funcoes_publicas():
     assert survey.freq_table is freq_table
     assert survey.crosstab_counts is crosstab_counts
     assert survey.crosstab_rowperc is crosstab_rowperc
+
+
+COMUNS_ENTRE_ESTUDANTES = [
+    "age_range",
+    "change_major",
+    "curriculum_rating",
+    "dropped_courses",
+    "facilities_rating",
+    "financial_impact",
+    "job_ready",
+    "keeps_up",
+    "knows_opportunities",
+    "lab_helps",
+    "meets_requirements",
+    "participates_lab",
+    "welcomed_by_faculty",
+    "welcoming_environment",
+    "works",
+]
+
+
+def test_common_vars_entre_os_dois_formularios_de_estudantes():
+    assert common_vars("students_2025_06", "students_researchers_2026_04") == COMUNS_ENTRE_ESTUDANTES
+
+
+def test_common_vars_nao_inclui_lab_helped_que_so_existe_em_2025():
+    assert "lab_helped" not in common_vars("researchers_2025_06", "students_researchers_2026_04")
+
+
+def test_compare_freq_devolve_uma_coluna_por_dataset(datasets):
+    tabela = compare_freq(["students_2025_06", "students_researchers_2026_04"], "change_major")
+    assert list(tabela.columns) == ["Alunos 2025", "Pesquisa 2026"]
+
+
+def test_compare_freq_cada_coluna_soma_cem(datasets):
+    tabela = compare_freq(["students_2025_06", "students_researchers_2026_04"], "change_major")
+    assert tabela.sum().round().eq(100).all()
+
+
+def test_compare_freq_imprime_a_ressalva_da_variavel(datasets, capsys):
+    compare_freq(["students_2025_06", "students_researchers_2026_04"], "participates_lab")
+    assert "Escopo mudou em 2026" in capsys.readouterr().out
+
+
+def test_compare_freq_recusa_variavel_ausente_em_um_dos_datasets(datasets):
+    with pytest.raises(KeyError, match="common_vars"):
+        compare_freq(["students_2025_06", "students_researchers_2026_04"], "burnout")

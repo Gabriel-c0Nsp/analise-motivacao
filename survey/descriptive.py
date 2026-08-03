@@ -3,7 +3,7 @@
 import pandas as pd
 
 from survey.loading import resolve
-from survey.schemas import LIKERT_ORDER, RATING_ORDER, SCALES
+from survey.schemas import CAVEATS, LIKERT_ORDER, RATING_ORDER, SCALES, SCHEMAS
 
 ORDERS = {"likert": LIKERT_ORDER, "rating": RATING_ORDER}
 
@@ -53,3 +53,30 @@ def crosstab_rowperc(dataset, a, b):
     """
     table = crosstab_counts(dataset, a, b)
     return (table.div(table.sum(axis=1), axis=0) * 100).round(1)
+
+
+def common_vars(*names):
+    """Variáveis declaradas em todos os datasets informados."""
+    declared = [set(SCHEMAS[name]["columns"]) for name in names]
+    return sorted(set.intersection(*declared))
+
+
+def compare_freq(datasets, name, labels=True):
+    """Percentual da variável lado a lado, uma coluna por dataset."""
+    frames = [resolve(item) for item in datasets]
+
+    absent = [frame.attrs["label"] for frame in frames if name not in frame.columns]
+    if absent:
+        raise KeyError(
+            "%r não existe em: %s. Use common_vars() para ver o que dá para comparar."
+            % (name, ", ".join(absent))
+        )
+
+    caveat = CAVEATS.get(name)
+    if caveat:
+        print("Ressalva sobre %s: %s" % (name, caveat))
+
+    columns = {
+        frame.attrs["label"]: freq_table(frame, name, labels=labels)["percent"] for frame in frames
+    }
+    return pd.DataFrame(columns).fillna(0)
