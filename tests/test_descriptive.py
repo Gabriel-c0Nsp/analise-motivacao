@@ -135,3 +135,19 @@ def test_compare_freq_imprime_a_ressalva_da_variavel(datasets, capsys):
 def test_compare_freq_recusa_variavel_ausente_em_um_dos_datasets(datasets):
     with pytest.raises(KeyError, match="common_vars"):
         compare_freq(["students_2025_06", "students_researchers_2026_04"], "burnout")
+
+
+def test_compare_freq_recusa_considered_quitting_por_mudanca_de_escala(datasets):
+    with pytest.raises(KeyError, match="considered_quitting_bin"):
+        compare_freq(["researchers_2025_06", "students_researchers_2026_04"], "considered_quitting")
+
+
+def test_compare_freq_considered_quitting_bin_compara_desistencia_entre_2025_e_2026(datasets):
+    tabela = compare_freq(
+        ["researchers_2025_06", "students_researchers_2026_04"], "considered_quitting_bin"
+    )
+    assert list(tabela.index) == ["Não", "Sim"]
+    assert tabela.loc["Não", "Bolsistas 2025"] == 52.0
+    assert tabela.loc["Sim", "Bolsistas 2025"] == 48.0
+    assert tabela.loc["Não", "Pesquisa 2026"] == 59.0
+    assert tabela.loc["Sim", "Pesquisa 2026"] == 41.0

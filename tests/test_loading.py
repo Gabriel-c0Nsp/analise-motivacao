@@ -1,6 +1,7 @@
 import pandas as pd
 import pytest
 
+from survey.descriptive import freq_table
 from survey.loading import LOADED, _print_report, clean_text, load_all, load_survey, resolve
 from survey.schemas import SCHEMAS
 
@@ -57,12 +58,15 @@ def test_term_converte_periodo_para_numero(datasets):
     assert (frame["term"] == 11).sum() == 6
 
 
-def test_considered_quitting_bin_derivado_apenas_onde_a_escala_e_likert(datasets):
+def test_considered_quitting_bin_existe_nos_dois_datasets_como_binaria(datasets):
     novo = datasets["students_researchers_2026_04"]
     antigo = datasets["researchers_2025_06"]
     assert "considered_quitting_bin" in novo.columns
-    assert "considered_quitting_bin" not in antigo.columns
+    assert "considered_quitting_bin" in antigo.columns
+    assert novo.attrs["kinds"]["considered_quitting_bin"] == "binary"
+    assert antigo.attrs["kinds"]["considered_quitting_bin"] == "binary"
     assert novo["considered_quitting_bin"].sum() == 16
+    assert freq_table(antigo, "considered_quitting_bin")["count"].sum() == len(antigo)
 
 
 def test_attrs_guardam_a_identificacao_do_dataset(datasets):

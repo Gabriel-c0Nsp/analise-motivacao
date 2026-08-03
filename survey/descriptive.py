@@ -72,6 +72,15 @@ def compare_freq(datasets, name, labels=True):
             % (name, ", ".join(absent))
         )
 
+    kinds_by_label = {frame.attrs["label"]: frame.attrs["kinds"][name] for frame in frames}
+    if len(set(kinds_by_label.values())) > 1:
+        detail = ", ".join("%s em %s" % (kind, label) for label, kind in kinds_by_label.items())
+        if name == "considered_quitting":
+            hint = "Use considered_quitting_bin, presente nos dois datasets com o mesmo tipo, para comparar."
+        else:
+            hint = "Use common_vars() para ver o que dá para comparar."
+        raise KeyError("%r tem tipo diferente em cada dataset: %s. %s" % (name, detail, hint))
+
     caveat = CAVEATS.get(name)
     if caveat:
         print("Ressalva sobre %s: %s" % (name, caveat))

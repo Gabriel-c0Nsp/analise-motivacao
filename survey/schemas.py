@@ -165,8 +165,10 @@ CAVEATS = {
         "para 64% mistura mudança real com mudança de pergunta."
     ),
     "considered_quitting": (
-        "Era binária em 2025 e virou Likert em 2026. A comparação usa considered_quitting_bin, "
-        "que trata Likert maior ou igual a 4 como Sim."
+        "Era binária em 2025 e virou Likert em 2026, por isso a comparação direta entre os "
+        "dois formulários é recusada. A comparação válida é sobre considered_quitting_bin, "
+        "coluna presente nos dois datasets, na qual a resposta Likert maior ou igual a 4 "
+        "equivale ao Sim de 2025."
     ),
     "activity_type": (
         "Campo livre com 19 valores únicos em 39 respostas, incluindo 'Nenhum', 'nenhuma', "

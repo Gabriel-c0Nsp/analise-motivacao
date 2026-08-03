@@ -49,11 +49,16 @@ def load_survey(schema):
         if unmapped:
             report.append((name, unmapped))
 
-    if kinds.get("considered_quitting") == "likert":
+    quitting_kind = kinds.get("considered_quitting")
+    if quitting_kind == "likert":
         quitting = frame["considered_quitting"]
         frame["considered_quitting_bin"] = (
             quitting.ge(QUITTING_AGREEMENT_THRESHOLD).astype(float).where(quitting.notna())
         )
+        kinds["considered_quitting_bin"] = "binary"
+    elif quitting_kind == "binary":
+        frame["considered_quitting_bin"] = frame["considered_quitting"].astype(float)
+        kinds["considered_quitting_bin"] = "binary"
 
     frame.attrs.update(
         label=schema["label"],
