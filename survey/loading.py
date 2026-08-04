@@ -66,6 +66,7 @@ def load_survey(schema):
         month=schema["month"],
         block=schema["block"],
         kinds=kinds,
+        declared_columns=len(schema["columns"]),
         conversion_report=report,
     )
     return frame
@@ -97,6 +98,8 @@ def resolve(value):
 
 def _print_report(name, frame):
     """Imprime o resumo da carga e os valores que não bateram com a escala."""
-    print("%s: %d respostas, %d variáveis" % (name, len(frame), len(frame.attrs["kinds"])))
+    # A contagem sai de declared_columns, e não de kinds, porque kinds também
+    # cobre as colunas derivadas na carga, como considered_quitting_bin.
+    print("%s: %d respostas, %d variáveis" % (name, len(frame), frame.attrs["declared_columns"]))
     for variable, unmapped in frame.attrs["conversion_report"]:
         print("  %s não mapeou %d valor(es): %s" % (variable, len(unmapped), ", ".join(unmapped)))

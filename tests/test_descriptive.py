@@ -120,7 +120,7 @@ def test_common_vars_nao_inclui_lab_helped_que_so_existe_em_2025():
 
 def test_compare_freq_devolve_uma_coluna_por_dataset(datasets):
     tabela = compare_freq(["students_2025_06", "students_researchers_2026_04"], "change_major")
-    assert list(tabela.columns) == ["Alunos 2025", "Pesquisa 2026"]
+    assert list(tabela.columns) == ["Alunos 2025 (n=29)", "Pesquisa 2026 (n=39)"]
 
 
 def test_compare_freq_cada_coluna_soma_cem(datasets):
@@ -149,10 +149,10 @@ def test_compare_freq_considered_quitting_bin_sobre_os_quadros_inteiros_contamin
         ["researchers_2025_06", "students_researchers_2026_04"], "considered_quitting_bin"
     )
     assert list(tabela.index) == ["Não", "Sim"]
-    assert tabela.loc["Não", "Bolsistas 2025"] == 52.0
-    assert tabela.loc["Sim", "Bolsistas 2025"] == 48.0
-    assert tabela.loc["Não", "Pesquisa 2026"] == 59.0
-    assert tabela.loc["Sim", "Pesquisa 2026"] == 41.0
+    assert tabela.loc["Não", "Bolsistas 2025 (n=25)"] == 52.0
+    assert tabela.loc["Sim", "Bolsistas 2025 (n=25)"] == 48.0
+    assert tabela.loc["Não", "Pesquisa 2026 (n=39)"] == 59.0
+    assert tabela.loc["Sim", "Pesquisa 2026 (n=39)"] == 41.0
 
 
 def test_compare_freq_considered_quitting_bin_restrito_aos_participantes_de_2026(datasets):
@@ -161,10 +161,10 @@ def test_compare_freq_considered_quitting_bin_restrito_aos_participantes_de_2026
     participantes = novo[novo["participates_lab"] == 1]
     tabela = compare_freq(["researchers_2025_06", participantes], "considered_quitting_bin")
     assert list(tabela.index) == ["Não", "Sim"]
-    assert tabela.loc["Não", "Bolsistas 2025"] == 52.0
-    assert tabela.loc["Sim", "Bolsistas 2025"] == 48.0
-    assert tabela.loc["Não", "Pesquisa 2026"] == 48.0
-    assert tabela.loc["Sim", "Pesquisa 2026"] == 52.0
+    assert tabela.loc["Não", "Bolsistas 2025 (n=25)"] == 52.0
+    assert tabela.loc["Sim", "Bolsistas 2025 (n=25)"] == 48.0
+    assert tabela.loc["Não", "Pesquisa 2026 (n=25)"] == 48.0
+    assert tabela.loc["Sim", "Pesquisa 2026 (n=25)"] == 52.0
 
 
 def test_desistencia_sobe_entre_participantes_e_cai_sobre_o_quadro_inteiro_de_2026(datasets):
@@ -187,9 +187,12 @@ def test_desistencia_sobe_entre_participantes_e_cai_sobre_o_quadro_inteiro_de_20
 PONTE = [("students_2025_06", "lab_helps"), ("researchers_2025_06", "lab_helped")]
 
 
-def test_compare_items_nomeia_a_coluna_com_dataset_e_item(datasets):
+def test_compare_items_nomeia_a_coluna_com_dataset_item_e_n(datasets):
     tabela = compare_items(PONTE)
-    assert list(tabela.columns) == ["Alunos 2025 (lab_helps)", "Bolsistas 2025 (lab_helped)"]
+    assert list(tabela.columns) == [
+        "Alunos 2025 (lab_helps, n=29)",
+        "Bolsistas 2025 (lab_helped, n=25)",
+    ]
 
 
 def test_compare_items_cada_coluna_soma_cem(datasets):
@@ -198,8 +201,8 @@ def test_compare_items_cada_coluna_soma_cem(datasets):
 
 def test_compare_items_reproduz_as_distribuicoes_conhecidas(datasets):
     tabela = compare_items(PONTE)
-    alunos = tabela["Alunos 2025 (lab_helps)"]
-    bolsistas = tabela["Bolsistas 2025 (lab_helped)"]
+    alunos = tabela["Alunos 2025 (lab_helps, n=29)"]
+    bolsistas = tabela["Bolsistas 2025 (lab_helped, n=25)"]
     assert alunos["Concordo totalmente"] == 44.8
     assert alunos["Concordo parcialmente"] == 41.4
     assert alunos["Discordo totalmente"] == 3.4

@@ -129,7 +129,12 @@ def _compare_table(entries, labels):
 
 
 def compare_freq(datasets, name, labels=True):
-    """Percentual da variável lado a lado, uma coluna por dataset."""
+    """Percentual da variável lado a lado, uma coluna por dataset.
+
+    O cabeçalho de cada coluna traz o número de respostas do quadro resumido,
+    que é o denominador daquele percentual. Sem ele, uma casa decimal sobre
+    amostras destes tamanhos parece mais precisa do que é.
+    """
     frames = [resolve(item) for item in datasets]
 
     absent = [frame.attrs["label"] for frame in frames if name not in frame.columns]
@@ -145,7 +150,7 @@ def compare_freq(datasets, name, labels=True):
     if caveat:
         print("Ressalva sobre %s: %s" % (name, caveat))
 
-    entries = [(frame.attrs["label"], frame, name) for frame in frames]
+    entries = [("%s (n=%d)" % (frame.attrs["label"], len(frame)), frame, name) for frame in frames]
     return _compare_table(entries, labels)
 
 
@@ -157,7 +162,8 @@ def compare_items(pairs, labels=True):
     justamente para permitir comparar perguntas distintas entre formulários,
     desde que a comparação seja declarada com o texto completo de cada pergunta,
     lido de `SCHEMAS`, e, quando houver, a ressalva de `CAVEATS` sobre o que
-    cada item mede.
+    cada item mede. Como em `compare_freq`, o cabeçalho de cada coluna traz o
+    número de respostas que serve de denominador do percentual.
     """
     frames = [resolve(dataset) for dataset, _ in pairs]
 
@@ -183,6 +189,7 @@ def compare_items(pairs, labels=True):
             print("Ressalva sobre %s: %s" % (name, caveat))
 
     entries = [
-        ("%s (%s)" % (frame.attrs["label"], name), frame, name) for frame, (_, name) in zip(frames, pairs)
+        ("%s (%s, n=%d)" % (frame.attrs["label"], name, len(frame)), frame, name)
+        for frame, (_, name) in zip(frames, pairs)
     ]
     return _compare_table(entries, labels)
