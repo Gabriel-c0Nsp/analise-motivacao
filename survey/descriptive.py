@@ -72,7 +72,11 @@ def _check_same_kind(items):
         return
     detail = ", ".join("%s (%s) em %s" % (name, kind, label) for label, name, kind in items)
     if {name for _, name, _ in items} == {"considered_quitting"}:
-        hint = "Use considered_quitting_bin, presente nos dois datasets com o mesmo tipo, para comparar."
+        hint = (
+            "Compare por considered_quitting_bin, restringindo 2026 aos participantes "
+            "com frame[frame['participates_lab'] == 1], porque a seção de atividade era "
+            "obrigatória e foi respondida também por quem não participa."
+        )
     else:
         hint = "Use common_vars() para ver o que dá para comparar."
     raise KeyError("tipo diferente entre os itens comparados: %s. %s" % (detail, hint))
