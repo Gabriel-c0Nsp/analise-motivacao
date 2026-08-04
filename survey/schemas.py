@@ -166,9 +166,15 @@ CAVEATS = {
     ),
     "considered_quitting": (
         "Era binária em 2025 e virou Likert em 2026, por isso a comparação direta entre os "
-        "dois formulários é recusada. A comparação válida é sobre considered_quitting_bin, "
-        "coluna presente nos dois datasets, na qual a resposta Likert maior ou igual a 4 "
-        "equivale ao Sim de 2025."
+        "dois formulários é recusada. A comparação válida é researchers_2025_06 contra o "
+        "subconjunto de participantes de 2026, frame[frame['participates_lab'] == 1], sobre "
+        "considered_quitting_bin, coluna presente nos dois datasets, na qual a resposta Likert "
+        "maior ou igual a 4 equivale ao Sim de 2025. Em 2026 a seção de atividade era "
+        "obrigatória e foi respondida também pelas 14 pessoas que declararam não participar de "
+        "nenhum laboratório, projeto ou atividade de extensão, três delas afirmando já ter "
+        "pensado em desistir de uma atividade que não têm. Por isso o percentual calculado "
+        "sobre as 39 respostas de 2026 não é comparável: dá 41,0% contra 48,0% de 2025 e "
+        "aparenta queda, enquanto o cálculo restrito aos 25 participantes dá 52,0% e mostra alta."
     ),
     "activity_type": (
         "Campo livre com 19 valores únicos em 39 respostas, incluindo 'Nenhum', 'nenhuma', "

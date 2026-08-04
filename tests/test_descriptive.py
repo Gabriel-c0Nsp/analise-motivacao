@@ -143,7 +143,8 @@ def test_compare_freq_recusa_considered_quitting_por_mudanca_de_escala(datasets)
         compare_freq(["researchers_2025_06", "students_researchers_2026_04"], "considered_quitting")
 
 
-def test_compare_freq_considered_quitting_bin_compara_desistencia_entre_2025_e_2026(datasets):
+def test_compare_freq_considered_quitting_bin_sobre_os_quadros_inteiros_contamina_2026(datasets):
+    """Documenta o número contaminado: 2026 inteiro inclui quem não participa de nada."""
     tabela = compare_freq(
         ["researchers_2025_06", "students_researchers_2026_04"], "considered_quitting_bin"
     )
@@ -152,6 +153,35 @@ def test_compare_freq_considered_quitting_bin_compara_desistencia_entre_2025_e_2
     assert tabela.loc["Sim", "Bolsistas 2025"] == 48.0
     assert tabela.loc["Não", "Pesquisa 2026"] == 59.0
     assert tabela.loc["Sim", "Pesquisa 2026"] == 41.0
+
+
+def test_compare_freq_considered_quitting_bin_restrito_aos_participantes_de_2026(datasets):
+    """Comparação válida: bolsistas de 2025 contra quem participa de atividade em 2026."""
+    novo = datasets["students_researchers_2026_04"]
+    participantes = novo[novo["participates_lab"] == 1]
+    tabela = compare_freq(["researchers_2025_06", participantes], "considered_quitting_bin")
+    assert list(tabela.index) == ["Não", "Sim"]
+    assert tabela.loc["Não", "Bolsistas 2025"] == 52.0
+    assert tabela.loc["Sim", "Bolsistas 2025"] == 48.0
+    assert tabela.loc["Não", "Pesquisa 2026"] == 48.0
+    assert tabela.loc["Sim", "Pesquisa 2026"] == 52.0
+
+
+def test_desistencia_sobe_entre_participantes_e_cai_sobre_o_quadro_inteiro_de_2026(datasets):
+    """A contaminação inverte o sentido da comparação, não só a magnitude."""
+    novo = datasets["students_researchers_2026_04"]
+    participantes = novo[novo["participates_lab"] == 1]
+    nao_participantes = novo[novo["participates_lab"] == 0]
+    antigo = datasets["researchers_2025_06"]
+
+    assert len(participantes) == 25
+    assert len(nao_participantes) == 14
+    assert nao_participantes["considered_quitting_bin"].sum() == 3
+
+    sim_2025 = antigo["considered_quitting_bin"].mean() * 100
+    assert round(sim_2025, 1) == 48.0
+    assert round(participantes["considered_quitting_bin"].mean() * 100, 1) > sim_2025
+    assert round(novo["considered_quitting_bin"].mean() * 100, 1) < sim_2025
 
 
 PONTE = [("students_2025_06", "lab_helps"), ("researchers_2025_06", "lab_helped")]
