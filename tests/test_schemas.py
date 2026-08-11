@@ -3,6 +3,7 @@ import pytest
 
 from survey.schemas import (
     BINARY,
+    BLOCKS,
     CAVEATS,
     LIKERT_5,
     LIKERT_ORDER,
@@ -125,14 +126,73 @@ NOMES = ["students_2025_06", "researchers_2025_06", "students_researchers_2026_0
 def test_toda_pergunta_declarada_existe_no_csv(nome):
     schema = SCHEMAS[nome]
     colunas = pd.read_csv(schema["file"], nrows=0).columns.str.strip()
-    faltando = [q for q, _ in schema["columns"].values() if q not in colunas]
+    faltando = [q for q, _, _ in schema["columns"].values() if q not in colunas]
     assert faltando == []
 
 
 @pytest.mark.parametrize("nome", NOMES)
 def test_todo_tipo_declarado_e_conhecido(nome):
-    tipos = {tipo for _, tipo in SCHEMAS[nome]["columns"].values()}
+    tipos = {tipo for _, tipo, _ in SCHEMAS[nome]["columns"].values()}
     assert tipos <= {"likert", "binary", "rating", "workload", "term", "categorical"}
+
+
+@pytest.mark.parametrize("nome", NOMES)
+def test_todo_bloco_declarado_e_conhecido(nome):
+    blocos = {bloco for _, _, bloco in SCHEMAS[nome]["columns"].values()}
+    assert blocos <= set(BLOCKS)
+
+
+def test_apenas_o_bloco_de_atividade_tem_recorte():
+    assert BLOCKS["general"]["scope"] is None
+    assert BLOCKS["activity"]["scope"] == "participates_lab"
+
+
+def test_alunos_2025_nao_tem_bloco_de_atividade():
+    blocos = {bloco for _, _, bloco in SCHEMAS["students_2025_06"]["columns"].values()}
+    assert blocos == {"general"}
+
+
+def test_bolsistas_2025_traz_o_bloco_de_atividade_menos_a_faixa_etaria():
+    colunas = SCHEMAS["researchers_2025_06"]["columns"]
+    gerais = {nome for nome, (_, _, bloco) in colunas.items() if bloco == "general"}
+    assert gerais == {"age_range"}
+
+
+def test_pesquisa_2026_declara_o_bloco_de_atividade():
+    colunas = SCHEMAS["students_researchers_2026_04"]["columns"]
+    atividade = {nome for nome, (_, _, bloco) in colunas.items() if bloco == "activity"}
+    assert atividade == {
+        "activity_type",
+        "activity_role",
+        "career_contribution",
+        "good_supervision",
+        "lacks_time",
+        "recognition_motivates",
+        "academic_output",
+        "considered_quitting",
+    }
+
+
+def test_lab_helps_fica_no_bloco_geral_por_ser_respondida_por_todos():
+    for nome in ["students_2025_06", "students_researchers_2026_04"]:
+        assert SCHEMAS[nome]["columns"]["lab_helps"][2] == "general"
+
+
+def test_so_a_pesquisa_de_2026_precisa_recortar_o_bloco_de_atividade():
+    # Em 2025 o formulário de bolsistas já era respondido só por participantes,
+    # então o bloco cobre a amostra inteira e não há o que recortar.
+    assert SCHEMAS["students_researchers_2026_04"]["activity_scope"] == "participates_lab"
+    assert SCHEMAS["researchers_2025_06"]["activity_scope"] is None
+    assert SCHEMAS["students_2025_06"]["activity_scope"] is None
+
+
+def test_recorte_declarado_aponta_para_uma_binaria_do_bloco_geral():
+    for nome, schema in SCHEMAS.items():
+        alvo = schema["activity_scope"]
+        if alvo is None:
+            continue
+        pergunta, tipo, bloco = schema["columns"][alvo]
+        assert (tipo, bloco) == ("binary", "general"), nome
 
 
 @pytest.mark.parametrize(
@@ -154,6 +214,12 @@ def test_identificacao_por_ano_e_mes_bate_com_o_primeiro_respondente():
 def test_considered_quitting_muda_de_escala_entre_os_formularios():
     assert SCHEMAS["researchers_2025_06"]["columns"]["considered_quitting"][1] == "binary"
     assert SCHEMAS["students_researchers_2026_04"]["columns"]["considered_quitting"][1] == "likert"
+
+
+def test_toda_coluna_declara_pergunta_tipo_e_bloco():
+    for nome, schema in SCHEMAS.items():
+        for coluna, declaracao in schema["columns"].items():
+            assert len(declaracao) == 3, "%s.%s" % (nome, coluna)
 
 
 def test_lab_helps_e_lab_helped_nao_compartilham_nome_canonico():

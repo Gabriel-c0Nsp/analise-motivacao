@@ -184,7 +184,7 @@ def compare_items(pairs, labels=True):
 
     print("Comparando itens de perguntas diferentes:")
     for frame, (_, name) in zip(frames, pairs):
-        question, _ = SCHEMAS[frame.attrs["dataset"]]["columns"][name]
+        question, _, _ = SCHEMAS[frame.attrs["dataset"]]["columns"][name]
         print("  %s (%s): %s" % (frame.attrs["label"], name, question))
 
     for _, name in pairs:

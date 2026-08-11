@@ -8,9 +8,18 @@ from survey.descriptive import (
     crosstab_rowperc,
     freq_table,
 )
-from survey.loading import LOADED, clean_text, load_all, load_survey, resolve
+from survey.loading import (
+    LOADED,
+    activity_frame,
+    clean_text,
+    load_all,
+    load_survey,
+    register_derived,
+    resolve,
+)
 from survey.schemas import (
     BINARY,
+    BLOCKS,
     CAVEATS,
     LIKERT_5,
     LIKERT_ORDER,
@@ -24,6 +33,7 @@ from survey.schemas import (
 
 __all__ = [
     "BINARY",
+    "BLOCKS",
     "CAVEATS",
     "LIKERT_5",
     "LIKERT_ORDER",
@@ -34,6 +44,7 @@ __all__ = [
     "SCHEMAS",
     "TERM_11",
     "WORKLOAD_4",
+    "activity_frame",
     "clean_text",
     "common_vars",
     "compare_freq",
@@ -43,5 +54,6 @@ __all__ = [
     "freq_table",
     "load_all",
     "load_survey",
+    "register_derived",
     "resolve",
 ]
