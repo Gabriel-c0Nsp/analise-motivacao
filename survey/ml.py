@@ -104,9 +104,15 @@ def build_xy(dataset, target, features=None):
     return completo[features], completo[target].astype(int)
 
 
-def _matrix(frame, features):
-    """Matriz padronizada, sem a qual a distância seria dominada pela escala de `term`."""
-    values = frame[features].dropna()
+def feature_matrix(dataset, features=None):
+    """Índice e matriz padronizada das variáveis, base única de toda distância.
+
+    Sem padronizar, `term` varia de 1 a 11 e domina a distância sobre itens que
+    vão de 1 a 5. Clusterização e dendrograma leem daqui para descreverem o
+    mesmo espaço.
+    """
+    frame = resolve(dataset)
+    values = frame[_features(frame, features)].dropna()
     return values.index, StandardScaler().fit_transform(values.to_numpy(float))
 
 
@@ -121,7 +127,7 @@ def cluster_scan(dataset, features=None, k_range=range(2, 6)):
     """
     frame = resolve(dataset)
     features = _features(frame, features)
-    _, values = _matrix(frame, features)
+    _, values = feature_matrix(frame, features)
 
     linhas = []
     for k in k_range:
@@ -144,7 +150,7 @@ def cluster_labels(dataset, k, method="kmeans", features=None):
     """Grupo de cada resposta, indexado como o quadro de origem."""
     frame = resolve(dataset)
     features = _features(frame, features)
-    index, values = _matrix(frame, features)
+    index, values = feature_matrix(frame, features)
 
     if method == "kmeans":
         labels = KMeans(n_clusters=k, n_init=50, random_state=RANDOM_STATE).fit_predict(values)
