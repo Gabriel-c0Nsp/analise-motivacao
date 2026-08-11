@@ -30,6 +30,7 @@ from survey.schemas import (
     TERM_11,
     WORKLOAD_4,
 )
+from survey.scores import REJECTED_SCORES, SCORE_DEFS, build_scores, score_table
 from survey.stats import cronbach_alpha, spearman_matrix, spearman_pairs
 
 __all__ = [
@@ -41,11 +42,14 @@ __all__ = [
     "LOADED",
     "RATING_5",
     "RATING_ORDER",
+    "REJECTED_SCORES",
     "SCALES",
     "SCHEMAS",
+    "SCORE_DEFS",
     "TERM_11",
     "WORKLOAD_4",
     "activity_frame",
+    "build_scores",
     "clean_text",
     "common_vars",
     "compare_freq",
@@ -58,6 +62,7 @@ __all__ = [
     "load_survey",
     "register_derived",
     "resolve",
+    "score_table",
     "spearman_matrix",
     "spearman_pairs",
 ]

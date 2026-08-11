@@ -76,7 +76,16 @@ def spearman_pairs(dataset, predictors, targets):
     for predictor in predictors:
         for target in targets:
             par = frame[[predictor, target]].dropna()
-            rho, p = spearmanr(par[predictor], par[target])
+            constante = [c for c in (predictor, target) if par[c].nunique() < 2]
+            if constante:
+                # Acontece ao cruzar a própria coluna do recorte dentro do recorte.
+                print(
+                    "%s x %s sem correlação: %s não varia nas %d respostas"
+                    % (predictor, target, " e ".join(constante), len(par))
+                )
+                rho, p = float("nan"), float("nan")
+            else:
+                rho, p = spearmanr(par[predictor], par[target])
             linhas.append((predictor, target, rho, p, len(par)))
 
     tabela = pd.DataFrame(linhas, columns=["predictor", "target", "rho", "p", "n"])

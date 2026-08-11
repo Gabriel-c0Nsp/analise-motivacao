@@ -24,6 +24,12 @@ def freq_table(dataset, name, labels=True):
     kind = frame.attrs["kinds"][name]
     series = frame[name]
 
+    if kind == "score":
+        raise KeyError(
+            "%r é um score contínuo, não tem ponto de escala para contar. "
+            "Use score_table() para o resumo numérico." % name
+        )
+
     if kind == "categorical":
         counts = series.value_counts(dropna=False)
     else:

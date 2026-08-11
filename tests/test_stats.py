@@ -121,6 +121,32 @@ def test_spearman_pairs_ordena_pelo_rho_mais_forte(datasets):
     assert tabela["rho"].abs().is_monotonic_decreasing
 
 
+def test_spearman_pairs_anuncia_preditor_constante_em_vez_de_avisar_pelo_scipy(datasets, capsys):
+    # Dentro do recorte, a própria coluna que define o recorte vale 1 em todas
+    # as linhas e não tem correlação com nada.
+    recorte = activity_frame(datasets["students_researchers_2026_04"])
+    tabela = spearman_pairs(recorte, ["participates_lab"], ["considered_quitting_bin"])
+
+    assert pd.isna(tabela.loc[("participates_lab", "considered_quitting_bin"), "rho"])
+    assert tabela.loc[("participates_lab", "considered_quitting_bin"), "n"] == 25
+    assert "participates_lab" in capsys.readouterr().out
+
+
+def test_o_recorte_muda_a_forca_da_relacao_entre_falta_de_tempo_e_desistir(datasets):
+    # As 14 respostas de quem não tem atividade atenuam a associação: sobre as
+    # 39 o rho é 0,33 e sobre os 25 participantes é 0,51, mais da metade maior.
+    frame = datasets["students_researchers_2026_04"]
+    solto = pd.DataFrame(frame[["lacks_time", "considered_quitting_bin"]])
+    contaminado = spearman_pairs(solto, ["lacks_time"], ["considered_quitting_bin"])
+    recortado = spearman_pairs(
+        activity_frame(frame), ["lacks_time"], ["considered_quitting_bin"]
+    )
+
+    assert round(contaminado.iloc[0]["rho"], 3) == 0.332
+    assert round(recortado.iloc[0]["rho"], 3) == 0.513
+    assert recortado.iloc[0]["p"] < contaminado.iloc[0]["p"] < 0.05
+
+
 def test_spearman_pairs_recusa_cruzar_bloco_de_atividade_sem_recorte(datasets):
     with pytest.raises(KeyError, match="activity_frame"):
         spearman_pairs(
