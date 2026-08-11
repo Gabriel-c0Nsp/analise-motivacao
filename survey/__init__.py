@@ -16,6 +16,7 @@ from survey.loading import (
     load_survey,
     register_derived,
     resolve,
+    to_agreement,
 )
 from survey.ml import (
     DEFAULT_FEATURES,
@@ -31,7 +32,11 @@ from survey.ml import (
 from survey.plots import (
     plot_cluster_profile,
     plot_coefficients,
+    plot_compare,
+    plot_crosstab,
+    plot_dataset_comparison,
     plot_dendrogram,
+    plot_freq,
     plot_model_comparison,
     plot_silhouette,
 )
@@ -49,7 +54,15 @@ from survey.schemas import (
     WORKLOAD_4,
 )
 from survey.scores import REJECTED_SCORES, SCORE_DEFS, build_scores, score_table
-from survey.stats import check_activity_scope, cronbach_alpha, spearman_matrix, spearman_pairs
+from survey.stats import (
+    check_activity_scope,
+    compare_datasets,
+    cronbach_alpha,
+    fisher,
+    mann_whitney,
+    spearman_matrix,
+    spearman_pairs,
+)
 
 __all__ = [
     "BINARY",
@@ -76,6 +89,7 @@ __all__ = [
     "cluster_profile",
     "cluster_scan",
     "common_vars",
+    "compare_datasets",
     "compare_freq",
     "compare_items",
     "compare_models",
@@ -83,14 +97,20 @@ __all__ = [
     "crosstab_counts",
     "crosstab_rowperc",
     "feature_matrix",
+    "fisher",
     "freq_table",
     "load_all",
     "load_survey",
     "logistic_coefficients",
+    "mann_whitney",
     "permutation_p",
     "plot_cluster_profile",
     "plot_coefficients",
+    "plot_compare",
+    "plot_crosstab",
+    "plot_dataset_comparison",
     "plot_dendrogram",
+    "plot_freq",
     "plot_model_comparison",
     "plot_silhouette",
     "register_derived",
@@ -98,4 +118,5 @@ __all__ = [
     "score_table",
     "spearman_matrix",
     "spearman_pairs",
+    "to_agreement",
 ]

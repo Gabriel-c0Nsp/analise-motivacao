@@ -107,3 +107,82 @@ def plot_dendrogram(dataset, features=None, ax=None):
     ax.set_ylabel("Distância de fusão")
     ax.set_title("Agrupamento hierárquico (Ward)")
     return ax.figure
+
+
+def plot_freq(table, title=None, ax=None):
+    """Distribuição de uma variável em barras, na ordem em que a tabela chegou.
+
+    Recebe a saída de `freq_table`, que já ordenou pela escala e não pela
+    frequência. Reordenar aqui desmancharia uma escala Likert.
+    """
+    if ax is None:
+        _, ax = plt.subplots(figsize=(max(6, 0.9 * len(table)), 4))
+
+    ax.bar([str(rotulo) for rotulo in table.index], table["percent"], color="#2471a3")
+    for x, (contagem, percentual) in enumerate(zip(table["count"], table["percent"])):
+        ax.text(x, percentual, "%d (%.1f%%)" % (contagem, percentual), ha="center",
+                va="bottom", fontsize=8)
+
+    ax.set_ylabel("% das respostas")
+    ax.set_ylim(0, max(table["percent"]) * 1.18)
+    ax.tick_params(axis="x", rotation=20)
+    for rotulo in ax.get_xticklabels():
+        rotulo.set_horizontalalignment("right")
+    if title:
+        ax.set_title(title)
+    return ax.figure
+
+
+def plot_crosstab(table, title=None, ax=None):
+    """Percentuais por linha em barras agrupadas, uma cor por coluna da tabela."""
+    if ax is None:
+        _, ax = plt.subplots(figsize=(max(6, 1.6 * len(table)), 4))
+
+    table.plot.bar(ax=ax, rot=0, width=0.75, colormap="tab10")
+    ax.set_ylabel("% da linha")
+    ax.set_ylim(0, 100)
+    ax.legend(title=table.columns.name, fontsize=8)
+    if title:
+        ax.set_title(title)
+    return ax.figure
+
+
+def plot_compare(table, title=None, ax=None):
+    """Comparação entre datasets em barras agrupadas, uma cor por dataset.
+
+    Recebe a saída de `compare_freq` ou `compare_items`, cujo cabeçalho já traz
+    o número de respostas que serve de denominador de cada percentual.
+    """
+    if ax is None:
+        _, ax = plt.subplots(figsize=(max(7, 1.4 * len(table)), 4))
+
+    table.plot.bar(ax=ax, rot=20, width=0.75, color=["#7f8c8d", "#2471a3", "#c0392b"][: len(table.columns)])
+    for rotulo in ax.get_xticklabels():
+        rotulo.set_horizontalalignment("right")
+
+    ax.set_ylabel("% das respostas do dataset")
+    ax.legend(fontsize=8)
+    if title:
+        ax.set_title(title)
+    return ax.figure
+
+
+def plot_dataset_comparison(comparison, ax=None):
+    """Tamanho e sinal da diferença entre dois datasets, variável por variável.
+
+    Recebe a saída de `compare_datasets`. A barra é a correlação bisserial de
+    postos, positiva quando o segundo dataset tem valores mais altos, e as
+    variáveis com p abaixo de 0,05 saem destacadas.
+    """
+    if ax is None:
+        _, ax = plt.subplots(figsize=(7, 0.42 * len(comparison) + 2))
+
+    ordenado = comparison.iloc[::-1]
+    cores = ["#c0392b" if p < 0.05 else "#bdc3c7" for p in ordenado["p"]]
+    ax.barh(ordenado.index, ordenado["effect"], color=cores)
+
+    ax.axvline(0, color="black", linewidth=0.8)
+    ax.set_xlabel("Efeito (positivo: o segundo dataset tem valores mais altos)")
+    ax.set_title("Diferenças entre os dois formulários, destacando p < 0,05")
+    ax.grid(axis="x", alpha=0.3)
+    return ax.figure

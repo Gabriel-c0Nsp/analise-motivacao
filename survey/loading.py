@@ -63,16 +63,35 @@ def load_survey(schema):
         conversion_report=report,
     )
 
-    quitting_kind = kinds.get("considered_quitting")
-    if quitting_kind == "likert":
-        quitting = frame["considered_quitting"]
-        values = quitting.ge(QUITTING_AGREEMENT_THRESHOLD).astype(float).where(quitting.notna())
-        register_derived(frame, "considered_quitting_bin", values, "binary")
-    elif quitting_kind == "binary":
-        values = frame["considered_quitting"].astype(float)
-        register_derived(frame, "considered_quitting_bin", values, "binary")
+    if "considered_quitting" in kinds:
+        to_agreement(frame, "considered_quitting")
 
     return frame
+
+
+def to_agreement(dataset, name, threshold=QUITTING_AGREEMENT_THRESHOLD, suffix="_bin"):
+    """Reduz um item Likert a concorda contra não concorda, em `<nome><sufixo>`.
+
+    Existe para comparar um item que virou Likert com a versão binária do mesmo
+    item em outro formulário, e para alimentar o teste de Fisher, que precisa de
+    duas classes. Item já binário é apenas copiado, sem limiar. Resposta ausente
+    continua ausente, em vez de virar zero.
+    """
+    frame = resolve(dataset)
+    kind = frame.attrs["kinds"][name]
+    derived = name + suffix
+
+    if kind == "binary":
+        values = frame[name].astype(float)
+    elif kind == "likert":
+        values = frame[name].ge(threshold).astype(float).where(frame[name].notna())
+    else:
+        raise ValueError(
+            "%r é do tipo %r. Só faz sentido dicotomizar item Likert ou binário." % (name, kind)
+        )
+
+    register_derived(frame, derived, values, "binary")
+    return derived
 
 
 def register_derived(frame, name, values, kind, block=None):

@@ -1,8 +1,15 @@
 import pandas as pd
 import pytest
 
-from survey.loading import activity_frame, load_all
-from survey.stats import cronbach_alpha, spearman_matrix, spearman_pairs
+from survey.loading import activity_frame, load_all, to_agreement
+from survey.stats import (
+    compare_datasets,
+    cronbach_alpha,
+    fisher,
+    mann_whitney,
+    spearman_matrix,
+    spearman_pairs,
+)
 
 BELONGING = ["welcomed_by_faculty", "welcoming_environment", "teaching_quality"]
 ACTIVITY = ["good_supervision", "recognition_motivates", "career_contribution"]
@@ -152,3 +159,121 @@ def test_spearman_pairs_recusa_cruzar_bloco_de_atividade_sem_recorte(datasets):
         spearman_pairs(
             datasets["students_researchers_2026_04"], ["good_supervision"], ["change_major"]
         )
+
+
+def test_fisher_confirma_a_relacao_entre_trabalhar_e_trancar(datasets):
+    resultado = fisher(datasets["students_2025_06"], "works", "dropped_courses")
+    assert resultado["n"] == 29
+    assert round(resultado["odds_ratio"], 3) == 18.667
+    assert round(resultado["p"], 6) == 0.005197
+
+
+def test_fisher_sobre_item_likert_dicotomizado(datasets):
+    frame = datasets["researchers_2025_06"].copy()
+    frame.attrs = {k: (dict(v) if isinstance(v, dict) else v) for k, v in frame.attrs.items()}
+    frame.attrs["derived"] = []
+    derivado = to_agreement(frame, "stipend_enough")
+    resultado = fisher(frame, derivado, "considered_quitting")
+
+    assert derivado == "stipend_enough_bin"
+    assert resultado["n"] == 25
+    assert round(resultado["p"], 6) == 0.041405
+    assert resultado["odds_ratio"] < 1
+
+
+def test_fisher_recusa_variavel_que_nao_e_binaria(datasets):
+    with pytest.raises(ValueError, match="to_agreement"):
+        fisher(datasets["students_2025_06"], "keeps_up", "works")
+
+
+def test_fisher_recusa_tabela_que_nao_e_2x2():
+    frame = pd.DataFrame({"a": [0.0, 1.0, 1.0], "b": [1.0, 1.0, 1.0]})
+    frame.attrs.update(kinds={"a": "binary", "b": "binary"}, blocks={}, activity_scope=None)
+    with pytest.raises(ValueError, match="2x1"):
+        fisher(frame, "a", "b")
+
+
+def test_to_agreement_usa_o_limiar_de_concordancia(datasets):
+    frame = datasets["students_2025_06"].copy()
+    frame.attrs = {k: (dict(v) if isinstance(v, dict) else v) for k, v in frame.attrs.items()}
+    frame.attrs["derived"] = []
+
+    to_agreement(frame, "keeps_up")
+
+    esperado = datasets["students_2025_06"]["keeps_up"].ge(4).sum()
+    assert frame["keeps_up_bin"].sum() == esperado
+    assert frame.attrs["kinds"]["keeps_up_bin"] == "binary"
+
+
+def test_to_agreement_recusa_tipo_sem_ordem_de_concordancia(datasets):
+    with pytest.raises(ValueError, match="Likert ou binário"):
+        to_agreement(datasets["students_2025_06"], "curriculum_rating")
+
+
+def test_mann_whitney_mede_o_avanco_de_sentir_se_preparado(datasets):
+    resultado = mann_whitney(
+        datasets["students_2025_06"], datasets["students_researchers_2026_04"], "job_ready"
+    )
+    assert (resultado["n_1"], resultado["n_2"]) == (29, 39)
+    assert round(resultado["mean_1"], 2) == 2.17
+    assert round(resultado["mean_2"], 2) == 3.23
+    assert round(resultado["p"], 4) == 0.0005
+    assert resultado["effect"] > 0
+
+
+def test_o_sinal_do_efeito_aponta_o_dataset_com_valores_mais_altos(datasets):
+    alunos, pesquisa = datasets["students_2025_06"], datasets["students_researchers_2026_04"]
+    direto = mann_whitney(alunos, pesquisa, "job_ready")
+    invertido = mann_whitney(pesquisa, alunos, "job_ready")
+
+    assert direto["effect"] == pytest.approx(-invertido["effect"])
+    assert direto["p"] == pytest.approx(invertido["p"])
+
+
+def test_mann_whitney_recusa_variavel_de_tipo_diferente_entre_os_datasets(datasets):
+    with pytest.raises(KeyError, match="considered_quitting"):
+        mann_whitney(
+            datasets["researchers_2025_06"],
+            datasets["students_researchers_2026_04"],
+            "considered_quitting",
+        )
+
+
+def test_mann_whitney_recusa_categorica(datasets):
+    with pytest.raises(ValueError, match="categórica"):
+        mann_whitney(
+            datasets["students_2025_06"], datasets["students_researchers_2026_04"], "age_range"
+        )
+
+
+def test_compare_datasets_cobre_as_comparaveis_e_descarta_a_categorica(datasets):
+    tabela = compare_datasets(
+        datasets["students_2025_06"], datasets["students_researchers_2026_04"]
+    )
+    assert len(tabela) == 14
+    assert "age_range" not in tabela.index
+    assert list(tabela.columns) == ["n_1", "n_2", "mean_1", "mean_2", "delta", "U", "p", "effect"]
+
+
+def test_compare_datasets_ordena_da_menor_para_a_maior_p(datasets):
+    tabela = compare_datasets(
+        datasets["students_2025_06"], datasets["students_researchers_2026_04"]
+    )
+    assert tabela["p"].is_monotonic_increasing
+    assert tabela.index[0] == "job_ready"
+    assert tabela.index[-1] == "dropped_courses"
+
+
+def test_cinco_variaveis_mudaram_entre_2025_e_2026(datasets):
+    tabela = compare_datasets(
+        datasets["students_2025_06"], datasets["students_researchers_2026_04"]
+    )
+    significativas = tabela[tabela["p"] < 0.05]
+    assert set(significativas.index) == {
+        "job_ready",
+        "knows_opportunities",
+        "financial_impact",
+        "participates_lab",
+        "welcomed_by_faculty",
+    }
+    assert (significativas["effect"] > 0).all()

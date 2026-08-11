@@ -1,9 +1,10 @@
 """Confiabilidade de escala e correlação de postos sobre os nomes canônicos."""
 
 import pandas as pd
-from scipy.stats import spearmanr
+from scipy.stats import fisher_exact, mannwhitneyu, spearmanr
 
 from survey.loading import resolve
+from survey.schemas import SCHEMAS
 
 
 def check_activity_scope(frame, items):
@@ -91,3 +92,98 @@ def spearman_pairs(dataset, predictors, targets):
     tabela = pd.DataFrame(linhas, columns=["predictor", "target", "rho", "p", "n"])
     tabela = tabela.reindex(tabela["rho"].abs().sort_values(ascending=False).index)
     return tabela.set_index(["predictor", "target"])
+
+
+def fisher(dataset, a, b):
+    """Teste exato de Fisher sobre a tabela 2x2 das duas variáveis binárias.
+
+    Exato em vez de qui-quadrado porque as amostras são pequenas e as casas da
+    tabela chegam a ter uma única resposta, faixa em que a aproximação do
+    qui-quadrado não vale. Item Likert precisa passar antes por `to_agreement`.
+    """
+    frame = resolve(dataset)
+    check_activity_scope(frame, [a, b])
+
+    for name in (a, b):
+        if frame.attrs["kinds"][name] != "binary":
+            raise ValueError(
+                "%r é do tipo %r. Fisher precisa de duas classes: use to_agreement()."
+                % (name, frame.attrs["kinds"][name])
+            )
+
+    table = pd.crosstab(frame[a], frame[b])
+    if table.shape != (2, 2):
+        raise ValueError(
+            "a tabela de %s por %s é %dx%d, e o teste exige 2x2"
+            % (a, b, table.shape[0], table.shape[1])
+        )
+
+    odds, p = fisher_exact(table.to_numpy())
+    return pd.Series(
+        {"n": int(table.to_numpy().sum()), "odds_ratio": odds, "p": p},
+        name="%s x %s" % (a, b),
+    )
+
+
+def mann_whitney(first, second, variable):
+    """Compara a distribuição da variável entre dois datasets, por postos.
+
+    Devolve as médias, a diferença, o U, o p e a correlação bisserial de
+    postos, positiva quando o segundo dataset tem os valores mais altos. Trata
+    as duas coletas como amostras independentes, o que não é estritamente
+    verdade: são anônimas e provavelmente têm respondentes em comum, então o p
+    é otimista e a comparação vale como descrição.
+    """
+    frames = [resolve(first), resolve(second)]
+    for frame in frames:
+        check_activity_scope(frame, [variable])
+
+    kinds = {frame.attrs["kinds"].get(variable) for frame in frames}
+    if len(kinds) != 1 or kinds == {None}:
+        raise KeyError(
+            "%r não tem o mesmo tipo nos dois datasets: %s"
+            % (variable, ", ".join(sorted(str(k) for k in kinds)))
+        )
+    if kinds == {"categorical"}:
+        raise ValueError("%r é categórica e não tem ordem para comparar por postos" % variable)
+
+    x, y = (frame[variable].dropna() for frame in frames)
+    u, p = mannwhitneyu(x, y, alternative="two-sided")
+    return pd.Series(
+        {
+            "n_1": len(x),
+            "n_2": len(y),
+            "mean_1": x.mean(),
+            "mean_2": y.mean(),
+            "delta": y.mean() - x.mean(),
+            "U": u,
+            "p": p,
+            "effect": 1 - 2 * u / (len(x) * len(y)),
+        },
+        name=variable,
+    )
+
+
+def compare_datasets(first, second, variables=None):
+    """Uma linha de Mann-Whitney por variável comparável, da menor para a maior p.
+
+    Sem variáveis informadas, compara tudo que os dois esquemas declaram com o
+    mesmo nome e o mesmo tipo. Categóricas ficam de fora, por não terem ordem.
+    Sem correção para comparações múltiplas: com uma dezena e meia de testes,
+    espera-se um p abaixo de 0,05 por acaso.
+    """
+    frames = [resolve(first), resolve(second)]
+    if variables is None:
+        declared = [set(SCHEMAS[frame.attrs["dataset"]]["columns"]) for frame in frames]
+        variables = sorted(set.intersection(*declared))
+
+    linhas = []
+    for variable in variables:
+        kinds = {frame.attrs["kinds"].get(variable) for frame in frames}
+        if len(kinds) != 1 or kinds & {None, "categorical"}:
+            continue
+        linhas.append(mann_whitney(frames[0], frames[1], variable))
+
+    tabela = pd.DataFrame(linhas)
+    tabela.index.name = "variable"
+    return tabela.sort_values("p")
