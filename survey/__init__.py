@@ -30,6 +30,7 @@ from survey.schemas import (
     TERM_11,
     WORKLOAD_4,
 )
+from survey.stats import cronbach_alpha, spearman_matrix, spearman_pairs
 
 __all__ = [
     "BINARY",
@@ -49,6 +50,7 @@ __all__ = [
     "common_vars",
     "compare_freq",
     "compare_items",
+    "cronbach_alpha",
     "crosstab_counts",
     "crosstab_rowperc",
     "freq_table",
@@ -56,4 +58,6 @@ __all__ = [
     "load_survey",
     "register_derived",
     "resolve",
+    "spearman_matrix",
+    "spearman_pairs",
 ]
