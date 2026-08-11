@@ -17,6 +17,16 @@ from survey.loading import (
     register_derived,
     resolve,
 )
+from survey.ml import (
+    DEFAULT_FEATURES,
+    build_xy,
+    cluster_labels,
+    cluster_profile,
+    cluster_scan,
+    compare_models,
+    logistic_coefficients,
+    permutation_p,
+)
 from survey.schemas import (
     BINARY,
     BLOCKS,
@@ -31,12 +41,13 @@ from survey.schemas import (
     WORKLOAD_4,
 )
 from survey.scores import REJECTED_SCORES, SCORE_DEFS, build_scores, score_table
-from survey.stats import cronbach_alpha, spearman_matrix, spearman_pairs
+from survey.stats import check_activity_scope, cronbach_alpha, spearman_matrix, spearman_pairs
 
 __all__ = [
     "BINARY",
     "BLOCKS",
     "CAVEATS",
+    "DEFAULT_FEATURES",
     "LIKERT_5",
     "LIKERT_ORDER",
     "LOADED",
@@ -50,16 +61,24 @@ __all__ = [
     "WORKLOAD_4",
     "activity_frame",
     "build_scores",
+    "build_xy",
+    "check_activity_scope",
     "clean_text",
+    "cluster_labels",
+    "cluster_profile",
+    "cluster_scan",
     "common_vars",
     "compare_freq",
     "compare_items",
+    "compare_models",
     "cronbach_alpha",
     "crosstab_counts",
     "crosstab_rowperc",
     "freq_table",
     "load_all",
     "load_survey",
+    "logistic_coefficients",
+    "permutation_p",
     "register_derived",
     "resolve",
     "score_table",

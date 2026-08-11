@@ -6,7 +6,7 @@ from scipy.stats import spearmanr
 from survey.loading import resolve
 
 
-def _check_activity_scope(frame, items):
+def check_activity_scope(frame, items):
     """Recusa ler o bloco de atividade num quadro que ainda tem quem não participa.
 
     Em 2026 a seção de atividade era obrigatória, então quem declarou não ter
@@ -41,7 +41,7 @@ def cronbach_alpha(dataset, items):
     reescalado antes de entrar.
     """
     frame = resolve(dataset)
-    _check_activity_scope(frame, items)
+    check_activity_scope(frame, items)
 
     if len(items) < 2:
         raise ValueError("o alfa de Cronbach precisa de pelo menos dois itens")
@@ -58,7 +58,7 @@ def cronbach_alpha(dataset, items):
 def spearman_matrix(dataset, items):
     """Matriz de correlação de postos entre os itens, para ver quais andam juntos."""
     frame = resolve(dataset)
-    _check_activity_scope(frame, items)
+    check_activity_scope(frame, items)
     return frame[list(items)].corr(method="spearman")
 
 
@@ -70,7 +70,7 @@ def spearman_pairs(dataset, predictors, targets):
     abaixo de 0,05 isolado não sustenta conclusão sozinho.
     """
     frame = resolve(dataset)
-    _check_activity_scope(frame, list(predictors) + list(targets))
+    check_activity_scope(frame, list(predictors) + list(targets))
 
     linhas = []
     for predictor in predictors:
