@@ -179,3 +179,22 @@ def test_comparacao_entre_datasets_destaca_o_que_tem_p_baixo(datasets):
     # distância entre os canais e não o vermelho sozinho.
     vermelhas = [b for b in barras if b.get_facecolor()[0] - b.get_facecolor()[1] > 0.3]
     assert len(vermelhas) == int((tabela["p"] < 0.05).sum()) == 5
+
+
+def test_dendrograma_nomeia_os_blocos_coloridos_na_legenda(frame):
+    figura = plot_dendrogram(
+        frame, group_names=["Veteranos", "Participantes", "Período inicial"]
+    )
+    rotulos = [t.get_text() for t in figura.axes[0].get_legend().get_texts()]
+
+    # A ordem é a do eixo horizontal, e o tamanho sai do próprio desenho.
+    assert rotulos == ["Veteranos (n=11)", "Participantes (n=18)", "Período inicial (n=10)"]
+
+
+def test_dendrograma_recusa_nomes_em_numero_diferente_dos_blocos(frame):
+    with pytest.raises(ValueError, match="3 bloco"):
+        plot_dendrogram(frame, group_names=["Veteranos", "Participantes"])
+
+
+def test_dendrograma_sem_nomes_nao_desenha_legenda(frame):
+    assert plot_dendrogram(frame).axes[0].get_legend() is None

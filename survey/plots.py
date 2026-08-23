@@ -4,7 +4,10 @@ Nenhuma função aqui calcula estatística. Todas recebem o resultado pronto dos
 outros módulos e só desenham, para o número da figura ser o mesmo da tabela.
 """
 
+from itertools import groupby
+
 import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
 from scipy.cluster.hierarchy import dendrogram, linkage
 
 from survey.ml import feature_matrix
@@ -95,13 +98,38 @@ def plot_model_comparison(comparison, ax=None):
     return ax.figure
 
 
-def plot_dendrogram(dataset, features=None, ax=None):
-    """Dendrograma de Ward sobre a mesma matriz padronizada da clusterização."""
+def plot_dendrogram(dataset, features=None, group_names=None, ax=None):
+    """Dendrograma de Ward sobre a mesma matriz padronizada da clusterização.
+
+    `group_names` nomeia os blocos coloridos, da esquerda para a direita. O
+    nome e o tamanho de cada bloco saem do próprio desenho, e não de uma
+    partição calculada à parte, para a legenda não poder discordar da figura.
+    Sem os nomes a figura sai sem legenda, e quem a lê não tem como saber qual
+    bloco é qual.
+    """
     if ax is None:
         _, ax = plt.subplots(figsize=(10, 4))
 
     _, values = feature_matrix(dataset, features)
-    dendrogram(linkage(values, method="ward"), ax=ax, no_labels=True, color_threshold=None)
+    desenho = dendrogram(
+        linkage(values, method="ward"), ax=ax, no_labels=True, color_threshold=None
+    )
+
+    if group_names is not None:
+        blocos = [(cor, len(list(folhas))) for cor, folhas in groupby(desenho["leaves_color_list"])]
+        if len(blocos) != len(group_names):
+            raise ValueError(
+                "a árvore tem %d bloco(s) colorido(s) e vieram %d nome(s)"
+                % (len(blocos), len(group_names))
+            )
+        ax.legend(
+            handles=[
+                Patch(color=cor, label="%s (n=%d)" % (nome, tamanho))
+                for (cor, tamanho), nome in zip(blocos, group_names)
+            ],
+            fontsize=8,
+            loc="upper right",
+        )
 
     ax.set_xlabel("Respostas")
     ax.set_ylabel("Distância de fusão")
