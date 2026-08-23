@@ -11,12 +11,14 @@ from survey.descriptive import (
 from survey.loading import (
     LOADED,
     activity_frame,
+    block_frame,
     clean_text,
     load_all,
     load_survey,
     register_derived,
     resolve,
     to_agreement,
+    to_stipend_flag,
 )
 from survey.ml import (
     DEFAULT_FEATURES,
@@ -50,12 +52,13 @@ from survey.schemas import (
     RATING_ORDER,
     SCALES,
     SCHEMAS,
+    STIPEND_ROLE,
     TERM_11,
     WORKLOAD_4,
 )
 from survey.scores import REJECTED_SCORES, SCORE_DEFS, build_scores, score_table
 from survey.stats import (
-    check_activity_scope,
+    check_scope,
     compare_datasets,
     cronbach_alpha,
     fisher,
@@ -78,12 +81,14 @@ __all__ = [
     "SCALES",
     "SCHEMAS",
     "SCORE_DEFS",
+    "STIPEND_ROLE",
     "TERM_11",
     "WORKLOAD_4",
     "activity_frame",
+    "block_frame",
     "build_scores",
     "build_xy",
-    "check_activity_scope",
+    "check_scope",
     "clean_text",
     "cluster_labels",
     "cluster_profile",
@@ -119,4 +124,5 @@ __all__ = [
     "spearman_matrix",
     "spearman_pairs",
     "to_agreement",
+    "to_stipend_flag",
 ]

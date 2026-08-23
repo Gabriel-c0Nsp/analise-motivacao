@@ -15,7 +15,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier
 
 from survey.loading import resolve
-from survey.stats import check_activity_scope
+from survey.stats import check_scope
 
 RANDOM_STATE = 42
 
@@ -81,7 +81,7 @@ def _features(frame, features):
     if faltando:
         raise KeyError("%s não existe(m) no quadro" % ", ".join(faltando))
 
-    check_activity_scope(frame, features)
+    check_scope(frame, features)
     return features
 
 
@@ -93,7 +93,7 @@ def build_xy(dataset, target, features=None):
     """
     frame = resolve(dataset)
     features = [f for f in _features(frame, features) if f != target]
-    check_activity_scope(frame, [target])
+    check_scope(frame, [target])
 
     if frame.attrs["kinds"].get(target) != "binary":
         raise ValueError(

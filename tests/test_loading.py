@@ -6,6 +6,7 @@ from survey.loading import (
     LOADED,
     _print_report,
     activity_frame,
+    block_frame,
     clean_text,
     load_all,
     load_survey,
@@ -156,7 +157,16 @@ def test_blocos_ficam_nos_attrs_de_cada_dataset(datasets):
 def test_coluna_derivada_na_carga_herda_o_bloco_do_item_de_origem(datasets):
     novo = datasets["students_researchers_2026_04"]
     assert novo.attrs["blocks"]["considered_quitting_bin"] == "activity"
-    assert novo.attrs["derived"] == ["considered_quitting_bin"]
+    assert novo.attrs["derived"] == ["has_stipend", "considered_quitting_bin"]
+    assert datasets["students_2025_06"].attrs["derived"] == []
+
+
+def test_has_stipend_marca_so_quem_declarou_o_papel_de_bolsista(datasets):
+    frame = datasets["researchers_2025_06"]
+    assert frame.attrs["kinds"]["has_stipend"] == "binary"
+    assert frame.attrs["blocks"]["has_stipend"] == "activity"
+    assert frame["has_stipend"].sum() == 16
+    assert (frame.loc[frame["has_stipend"] == 1, "activity_role"] == "Bolsista").all()
 
 
 def test_register_derived_torna_a_coluna_visivel_para_freq_table(datasets):
@@ -177,6 +187,32 @@ def test_register_derived_recusa_bloco_desconhecido(datasets):
     frame.attrs = {k: (dict(v) if isinstance(v, dict) else v) for k, v in frame.attrs.items()}
     with pytest.raises(KeyError, match="inventado"):
         register_derived(frame, "qualquer", frame["works"], "binary", block="inventado")
+
+
+def test_block_frame_recorta_o_bloco_de_bolsa_para_quem_recebe_bolsa(datasets):
+    frame = datasets["researchers_2025_06"]
+    recorte = block_frame(frame, "stipend")
+    assert len(frame) == 25
+    assert len(recorte) == 16
+    assert recorte.attrs["label"] == "Bolsistas 2025 (bolsistas)"
+
+
+def test_recorte_da_bolsa_muda_a_media_do_item(datasets):
+    frame = datasets["researchers_2025_06"]
+    assert round(frame["stipend_enough"].mean(), 2) == 3.20
+    assert round(block_frame(frame, "stipend")["stipend_enough"].mean(), 2) == 3.62
+
+
+def test_block_frame_recusa_bloco_desconhecido(datasets):
+    with pytest.raises(KeyError, match="inventado"):
+        block_frame(datasets["researchers_2025_06"], "inventado")
+
+
+def test_toda_coluna_de_recorte_e_binaria_e_fica_fora_do_bloco_que_recorta(datasets):
+    for nome, frame in datasets.items():
+        for bloco, coluna in frame.attrs["scopes"].items():
+            assert frame.attrs["kinds"][coluna] == "binary", (nome, coluna)
+            assert frame.attrs["blocks"][coluna] != bloco, (nome, coluna)
 
 
 def test_activity_frame_recorta_2026_para_quem_participa(datasets):

@@ -2,7 +2,13 @@
 
 import pandas as pd
 
-from survey.schemas import BLOCKS, QUITTING_AGREEMENT_THRESHOLD, SCALES, SCHEMAS
+from survey.schemas import (
+    BLOCKS,
+    QUITTING_AGREEMENT_THRESHOLD,
+    SCALES,
+    SCHEMAS,
+    STIPEND_ROLE,
+)
 
 LOADED = {}
 
@@ -55,7 +61,7 @@ def load_survey(schema):
         label=schema["label"],
         year=schema["year"],
         month=schema["month"],
-        activity_scope=schema["activity_scope"],
+        scopes=dict(schema["scopes"]),
         kinds=kinds,
         blocks=blocks,
         derived=[],
@@ -63,10 +69,29 @@ def load_survey(schema):
         conversion_report=report,
     )
 
+    if "activity_role" in kinds:
+        to_stipend_flag(frame)
     if "considered_quitting" in kinds:
         to_agreement(frame, "considered_quitting")
 
     return frame
+
+
+def to_stipend_flag(dataset, role=STIPEND_ROLE, name="has_stipend"):
+    """Marca quem de fato recebe bolsa, a partir do papel declarado na atividade.
+
+    Existe porque o bloco de bolsa precisa de uma binária para recortar e o
+    formulário não pergunta direto se a pessoa recebe bolsa: quem responde
+    escolhe entre bolsista, voluntário e o papel não se aplicar. Fica no bloco
+    de atividade, e não no de bolsa, porque descreve o papel de quem tem
+    atividade, e não a bolsa em si.
+    """
+    frame = resolve(dataset)
+    papel = frame["activity_role"]
+    register_derived(
+        frame, name, papel.eq(role).astype(float).where(papel.notna()), "binary", block="activity"
+    )
+    return name
 
 
 def to_agreement(dataset, name, threshold=QUITTING_AGREEMENT_THRESHOLD, suffix="_bin"):
@@ -114,16 +139,20 @@ def register_derived(frame, name, values, kind, block=None):
     return frame[name]
 
 
-def activity_frame(dataset):
-    """Recorta o quadro para quem de fato realiza a atividade, e renomeia o rótulo.
+def block_frame(dataset, block):
+    """Recorta o quadro para quem o bloco de fato descreve, e renomeia o rótulo.
 
-    Toda leitura do bloco de atividade passa por aqui. Sem o recorte, a média, o
-    percentual e o alfa de Cronbach do bloco descrevem em parte quem respondeu a
-    seção obrigatória sem ter atividade nenhuma. Quando o formulário inteiro já
-    era respondido só por participantes, devolve o quadro sem mudança.
+    Toda leitura de um bloco com recorte declarado passa por aqui. Sem o
+    recorte, a média, o percentual e o alfa de Cronbach do bloco descrevem em
+    parte quem respondeu uma pergunta que não vale para ele. Quando o dataset
+    não declara recorte para o bloco, devolve o quadro sem mudança: é o caso de
+    um formulário que já foi respondido só por quem o bloco descreve.
     """
     frame = resolve(dataset)
-    scope = frame.attrs["activity_scope"]
+    if block not in BLOCKS:
+        raise KeyError("bloco %r desconhecido. Conhecidos: %s" % (block, ", ".join(BLOCKS)))
+
+    scope = frame.attrs["scopes"].get(block)
     if scope is None:
         return frame
 
@@ -132,8 +161,14 @@ def activity_frame(dataset):
     recorte.attrs["kinds"] = dict(frame.attrs["kinds"])
     recorte.attrs["blocks"] = dict(frame.attrs["blocks"])
     recorte.attrs["derived"] = list(frame.attrs["derived"])
-    recorte.attrs["label"] = "%s (participantes)" % frame.attrs["label"]
+    recorte.attrs["scopes"] = dict(frame.attrs["scopes"])
+    recorte.attrs["label"] = "%s (%s)" % (frame.attrs["label"], BLOCKS[block]["scope_label"])
     return recorte
+
+
+def activity_frame(dataset):
+    """Atalho para o recorte do bloco de atividade, o mais usado dos dois."""
+    return block_frame(dataset, "activity")
 
 
 def load_all(verbose=True):

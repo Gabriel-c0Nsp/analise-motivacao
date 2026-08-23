@@ -66,15 +66,36 @@ SCALES = {
 QUITTING_AGREEMENT_THRESHOLD = 4
 
 # Cada coluna pertence a um bloco do formulário. O bloco geral vale para toda a
-# amostra. O bloco de atividade só faz sentido para quem realiza a atividade, e
-# `scope` nomeia a binária que separa esse grupo. Em 2026 a seção era obrigatória
-# e foi respondida também por quem declarou não participar, então a resposta
-# existe mas não descreve ninguém: sem o recorte, a média, o percentual e o alfa
-# de Cronbach do bloco medem em parte um grupo sem atividade.
+# amostra. Os outros dois descrevem só um subconjunto dela, e lidos sobre o
+# quadro inteiro misturam quem o bloco descreve com quem ele não descreve: a
+# média, o percentual e o alfa de Cronbach passam a medir em parte um grupo que
+# não tem o que a pergunta supõe. Qual coluna faz o recorte depende de como cada
+# formulário foi aplicado, então é declarada em `scopes`, dataset a dataset.
+#
+# O bloco de atividade só vale para quem realiza a atividade. Em 2026 a seção
+# era obrigatória e foi respondida também por quem declarou não participar.
+#
+# O bloco de bolsa só vale para quem recebe bolsa. O formulário de 2025 foi
+# respondido por 16 bolsistas, 6 voluntários e 3 pessoas cujo papel não se
+# aplica, e a pergunta sobre a bolsa cobrir as despesas foi para as 25.
 BLOCKS = {
-    "general": {"label": "Bloco geral", "scope": None},
-    "activity": {"label": "Bloco de atividade", "scope": "participates_lab"},
+    "general": {"label": "Bloco geral"},
+    "activity": {
+        "label": "Bloco de atividade",
+        "scope_label": "participantes",
+        "outside": "declarou não participar",
+    },
+    "stipend": {
+        "label": "Bloco de bolsa",
+        "scope_label": "bolsistas",
+        "outside": "não recebe bolsa",
+    },
 }
+
+# Papel declarado por quem de fato recebe bolsa, entre as opções de
+# `activity_role`. É a base de has_stipend, a binária que recorta o bloco de
+# bolsa.
+STIPEND_ROLE = "Bolsista"
 
 SCHEMAS = {
     "students_2025_06": {
@@ -82,7 +103,7 @@ SCHEMAS = {
         "label": "Alunos 2025",
         "year": 2025,
         "month": 6,
-        "activity_scope": None,
+        "scopes": {},
         "columns": {
             "age_range": ("Qual sua faixa etária?", "categorical", "general"),
             "school_base": ("Recebi uma boa base de aprendizado durante os anos escolares.", "likert", "general"),
@@ -111,7 +132,7 @@ SCHEMAS = {
         "label": "Bolsistas 2025",
         "year": 2025,
         "month": 6,
-        "activity_scope": None,
+        "scopes": {"stipend": "has_stipend"},
         "columns": {
             "age_range": ("Qual sua faixa etária?", "categorical", "general"),
             "activity_type": ("Qual o tipo de atividade que você realiza atualmente?", "categorical", "activity"),
@@ -120,7 +141,7 @@ SCHEMAS = {
             "lab_helped": ("A participação em projetos de pesquisa ou laboratórios ajudou a compreender melhor os conteúdos vistos em sala de aula.", "likert", "activity"),
             "career_contribution": ("A atividade que desenvolvo no projeto contribui para a minha formação profissional.", "likert", "activity"),
             "considered_quitting": ("Já pensou em desistir da atividade de laboratório ou extensão por excesso de demandas acadêmicas?", "binary", "activity"),
-            "stipend_enough": ("A bolsa que recebo é suficiente para cobrir minhas principais despesas acadêmicas.", "likert", "activity"),
+            "stipend_enough": ("A bolsa que recebo é suficiente para cobrir minhas principais despesas acadêmicas.", "likert", "stipend"),
             "good_supervision": ("Recebo orientação adequada do meu professor orientador.", "likert", "activity"),
             "lacks_time": ("Sinto que não tenho tempo suficiente para conciliar as disciplinas regulares, a atividade no laboratório/projeto e minha vida pessoal.", "likert", "activity"),
             "academic_output": ("Sua participação no projeto já resultou em alguma produção acadêmica? (ex: artigo, resumo, apresentação em evento, etc.).", "binary", "activity"),
@@ -137,7 +158,7 @@ SCHEMAS = {
         "label": "Pesquisa 2026",
         "year": 2026,
         "month": 4,
-        "activity_scope": "participates_lab",
+        "scopes": {"activity": "participates_lab"},
         "columns": {
             "age_range": ("Qual sua faixa etária?", "categorical", "general"),
             "term": ("Qual período você está cursando atualmente?", "term", "general"),
@@ -186,6 +207,18 @@ CAVEATS = {
         "pensado em desistir de uma atividade que não têm. Por isso o percentual calculado "
         "sobre as 39 respostas de 2026 não é comparável: dá 41,0% contra 48,0% de 2025 e "
         "aparenta queda, enquanto o cálculo restrito aos 25 participantes dá 52,0% e mostra alta."
+    ),
+    "stipend_enough": (
+        "Pergunta se a bolsa recebida cobre as despesas e foi respondida pelas 25 pessoas do "
+        "formulário de 2025, das quais só 16 recebem bolsa. Voluntário e quem marcou que o "
+        "papel não se aplica não têm bolsa para cobrir despesa nenhuma, e respondem baixo por "
+        "isso: a média cai de 3,62 entre bolsistas para 2,67 e 2,00 nos outros dois papéis. "
+        "Como nenhuma dessas 9 pessoas pode concordar com o item, o lado que concorda é "
+        "formado só por bolsistas, e o teste sobre as 25 mede ter bolsa em vez de a bolsa "
+        "bastar: dá o mesmo p de 0,0414 do cruzamento entre ser bolsista e ter pensado em "
+        "desistir. Restrito aos 16 bolsistas, por block_frame(quadro, 'stipend'), a "
+        "correlação com considered_quitting cai de -0,531 para -0,378 e deixa de ser "
+        "detectável, com p de 0,148."
     ),
     "activity_type": (
         "Campo livre com 19 valores únicos em 39 respostas, incluindo 'Nenhum', 'nenhuma', "

@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from survey.loading import activity_frame, load_all, to_agreement
+from survey.loading import activity_frame, block_frame, load_all, to_agreement
 from survey.stats import (
     compare_datasets,
     cronbach_alpha,
@@ -169,16 +169,42 @@ def test_fisher_confirma_a_relacao_entre_trabalhar_e_trancar(datasets):
 
 
 def test_fisher_sobre_item_likert_dicotomizado(datasets):
-    frame = datasets["researchers_2025_06"].copy()
-    frame.attrs = {k: (dict(v) if isinstance(v, dict) else v) for k, v in frame.attrs.items()}
-    frame.attrs["derived"] = []
+    frame = block_frame(datasets["researchers_2025_06"], "stipend")
     derivado = to_agreement(frame, "stipend_enough")
     resultado = fisher(frame, derivado, "considered_quitting")
 
     assert derivado == "stipend_enough_bin"
-    assert resultado["n"] == 25
-    assert round(resultado["p"], 6) == 0.041405
+    assert resultado["n"] == 16
+    assert round(resultado["p"], 6) == 0.299451
     assert resultado["odds_ratio"] < 1
+
+
+def test_bloco_de_bolsa_e_recusado_sobre_quem_nao_recebe_bolsa(datasets):
+    with pytest.raises(KeyError, match="block_frame"):
+        spearman_pairs(
+            datasets["researchers_2025_06"], ["stipend_enough"], ["considered_quitting"]
+        )
+
+
+def test_a_recusa_evita_uma_correlacao_que_mede_ter_bolsa(datasets):
+    # Nenhuma das 9 pessoas sem bolsa pode concordar que a bolsa cobre as
+    # despesas, então sobre as 25 o item separa bolsista de voluntário em vez de
+    # separar bolsa que basta de bolsa que não basta. O quadro sem metadado
+    # escapa da recusa e mostra o número que a recusa existe para impedir.
+    frame = datasets["researchers_2025_06"]
+    par = ("stipend_enough", "considered_quitting")
+
+    cru = pd.DataFrame(frame[list(par)])
+    contaminado = spearman_pairs(cru, [par[0]], [par[1]])
+    recortado = spearman_pairs(block_frame(frame, "stipend"), [par[0]], [par[1]])
+
+    assert contaminado.loc[par, "n"] == 25
+    assert round(contaminado.loc[par, "rho"], 3) == -0.531
+    assert contaminado.loc[par, "p"] < 0.05
+
+    assert recortado.loc[par, "n"] == 16
+    assert round(recortado.loc[par, "rho"], 3) == -0.378
+    assert recortado.loc[par, "p"] > 0.05
 
 
 def test_fisher_recusa_variavel_que_nao_e_binaria(datasets):
@@ -188,7 +214,7 @@ def test_fisher_recusa_variavel_que_nao_e_binaria(datasets):
 
 def test_fisher_recusa_tabela_que_nao_e_2x2():
     frame = pd.DataFrame({"a": [0.0, 1.0, 1.0], "b": [1.0, 1.0, 1.0]})
-    frame.attrs.update(kinds={"a": "binary", "b": "binary"}, blocks={}, activity_scope=None)
+    frame.attrs.update(kinds={"a": "binary", "b": "binary"}, blocks={}, scopes={})
     with pytest.raises(ValueError, match="2x1"):
         fisher(frame, "a", "b")
 

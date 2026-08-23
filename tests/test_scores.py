@@ -100,7 +100,7 @@ def test_build_scores_pula_o_que_falta_item_e_avisa(datasets, capsys):
 def test_score_com_item_ausente_na_linha_fica_ausente_e_nao_vira_media_parcial():
     frame = pd.DataFrame({"a": [4.0, 5.0], "b": [2.0, None]})
     frame.attrs.update(kinds={"a": "likert", "b": "likert"}, blocks={"a": "general", "b": "general"},
-                       derived=[], label="sintetico", activity_scope=None)
+                       derived=[], label="sintetico", scopes={})
     definicao = {"items": ["a", "b"], "block": "general", "label": "Teste", "min_alpha": 0.0}
 
     build_scores(frame, defs={"score_teste": definicao})

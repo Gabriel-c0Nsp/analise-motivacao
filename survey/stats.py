@@ -4,33 +4,51 @@ import pandas as pd
 from scipy.stats import fisher_exact, mannwhitneyu, spearmanr
 
 from survey.loading import resolve
-from survey.schemas import SCHEMAS
+from survey.schemas import BLOCKS, SCHEMAS
 
 
-def check_activity_scope(frame, items):
-    """Recusa ler o bloco de atividade num quadro que ainda tem quem não participa.
+def check_scope(frame, items):
+    """Recusa ler um bloco recortado num quadro que ainda tem quem ele não descreve.
 
-    Em 2026 a seção de atividade era obrigatória, então quem declarou não ter
-    atividade também respondeu. Essas respostas não descrevem experiência
-    nenhuma e mesmo assim entram na variância: sobre as 39 respostas o alfa do
-    bloco dá 0,822 e sobre os 25 participantes dá 0,331. A recusa obriga a
-    passar por `activity_frame` antes de qualquer leitura do bloco.
+    Os dois casos que a recusa cobre têm o mesmo formato. Em 2026 a seção de
+    atividade era obrigatória, então quem declarou não ter atividade também
+    respondeu: sobre as 39 respostas o alfa do bloco dá 0,822 e sobre os 25
+    participantes dá 0,331. Em 2025 a pergunta sobre a bolsa cobrir as despesas
+    foi para as 25 pessoas do formulário, das quais só 16 recebem bolsa: sobre
+    as 25 a correlação com ter pensado em desistir dá -0,531, e sobre os 16
+    bolsistas dá -0,378. Nos dois casos a resposta existe sem descrever
+    ninguém, e mesmo assim entra na variância.
     """
-    scope = frame.attrs.get("activity_scope")
+    scopes = frame.attrs.get("scopes", {})
     blocks = frame.attrs.get("blocks", {})
-    if scope is None or scope not in frame.columns:
-        return
 
-    do_bloco = [item for item in items if blocks.get(item) == "activity"]
-    if not do_bloco:
-        return
+    for block, scope in scopes.items():
+        if scope is None or scope not in frame.columns:
+            continue
 
-    fora = int((frame[scope] != 1).sum())
-    if fora:
+        do_bloco = [item for item in items if blocks.get(item) == block]
+        if not do_bloco:
+            continue
+
+        fora = int((frame[scope] != 1).sum())
+        if not fora:
+            continue
+
+        if block == "activity":
+            recorte = "activity_frame()"
+        else:
+            recorte = "block_frame(quadro, %r)" % block
         raise KeyError(
-            "%s pertence(m) ao bloco de atividade e %s tem %d resposta(s) de quem "
-            "declarou não participar. Passe o quadro por activity_frame() antes."
-            % (", ".join(do_bloco), frame.attrs.get("label", "o quadro"), fora)
+            "%s pertence(m) ao %s e %s tem %d resposta(s) de quem %s. "
+            "Passe o quadro por %s antes."
+            % (
+                ", ".join(do_bloco),
+                BLOCKS[block]["label"].lower(),
+                frame.attrs.get("label", "o quadro"),
+                fora,
+                BLOCKS[block]["outside"],
+                recorte,
+            )
         )
 
 
@@ -42,7 +60,7 @@ def cronbach_alpha(dataset, items):
     reescalado antes de entrar.
     """
     frame = resolve(dataset)
-    check_activity_scope(frame, items)
+    check_scope(frame, items)
 
     if len(items) < 2:
         raise ValueError("o alfa de Cronbach precisa de pelo menos dois itens")
@@ -59,7 +77,7 @@ def cronbach_alpha(dataset, items):
 def spearman_matrix(dataset, items):
     """Matriz de correlação de postos entre os itens, para ver quais andam juntos."""
     frame = resolve(dataset)
-    check_activity_scope(frame, items)
+    check_scope(frame, items)
     return frame[list(items)].corr(method="spearman")
 
 
@@ -71,7 +89,7 @@ def spearman_pairs(dataset, predictors, targets):
     abaixo de 0,05 isolado não sustenta conclusão sozinho.
     """
     frame = resolve(dataset)
-    check_activity_scope(frame, list(predictors) + list(targets))
+    check_scope(frame, list(predictors) + list(targets))
 
     linhas = []
     for predictor in predictors:
@@ -102,7 +120,7 @@ def fisher(dataset, a, b):
     qui-quadrado não vale. Item Likert precisa passar antes por `to_agreement`.
     """
     frame = resolve(dataset)
-    check_activity_scope(frame, [a, b])
+    check_scope(frame, [a, b])
 
     for name in (a, b):
         if frame.attrs["kinds"][name] != "binary":
@@ -136,7 +154,7 @@ def mann_whitney(first, second, variable):
     """
     frames = [resolve(first), resolve(second)]
     for frame in frames:
-        check_activity_scope(frame, [variable])
+        check_scope(frame, [variable])
 
     kinds = {frame.attrs["kinds"].get(variable) for frame in frames}
     if len(kinds) != 1 or kinds == {None}:

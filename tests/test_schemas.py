@@ -142,9 +142,10 @@ def test_todo_bloco_declarado_e_conhecido(nome):
     assert blocos <= set(BLOCKS)
 
 
-def test_apenas_o_bloco_de_atividade_tem_recorte():
-    assert BLOCKS["general"]["scope"] is None
-    assert BLOCKS["activity"]["scope"] == "participates_lab"
+def test_so_o_bloco_geral_vale_para_a_amostra_inteira():
+    assert "scope_label" not in BLOCKS["general"]
+    assert BLOCKS["activity"]["scope_label"] == "participantes"
+    assert BLOCKS["stipend"]["scope_label"] == "bolsistas"
 
 
 def test_alunos_2025_nao_tem_bloco_de_atividade():
@@ -178,21 +179,27 @@ def test_lab_helps_fica_no_bloco_geral_por_ser_respondida_por_todos():
         assert SCHEMAS[nome]["columns"]["lab_helps"][2] == "general"
 
 
-def test_so_a_pesquisa_de_2026_precisa_recortar_o_bloco_de_atividade():
+def test_cada_formulario_declara_o_recorte_que_a_sua_aplicacao_exige():
     # Em 2025 o formulário de bolsistas já era respondido só por participantes,
-    # então o bloco cobre a amostra inteira e não há o que recortar.
-    assert SCHEMAS["students_researchers_2026_04"]["activity_scope"] == "participates_lab"
-    assert SCHEMAS["researchers_2025_06"]["activity_scope"] is None
-    assert SCHEMAS["students_2025_06"]["activity_scope"] is None
+    # então o bloco de atividade cobre a amostra inteira e não há o que
+    # recortar. A pergunta sobre a bolsa é outra história: foi respondida
+    # também por voluntário e por quem marcou que o papel não se aplica.
+    assert SCHEMAS["students_researchers_2026_04"]["scopes"] == {"activity": "participates_lab"}
+    assert SCHEMAS["researchers_2025_06"]["scopes"] == {"stipend": "has_stipend"}
+    assert SCHEMAS["students_2025_06"]["scopes"] == {}
 
 
-def test_recorte_declarado_aponta_para_uma_binaria_do_bloco_geral():
+def test_recorte_declarado_aponta_para_bloco_conhecido_e_recortavel():
     for nome, schema in SCHEMAS.items():
-        alvo = schema["activity_scope"]
-        if alvo is None:
-            continue
-        pergunta, tipo, bloco = schema["columns"][alvo]
-        assert (tipo, bloco) == ("binary", "general"), nome
+        for bloco in schema["scopes"]:
+            assert bloco in BLOCKS, nome
+            assert "scope_label" in BLOCKS[bloco], nome
+
+
+def test_stipend_enough_fica_no_bloco_de_bolsa():
+    # A pergunta supõe receber bolsa, e não apenas realizar a atividade, então
+    # não pode ficar no mesmo bloco dos itens que valem para todo participante.
+    assert SCHEMAS["researchers_2025_06"]["columns"]["stipend_enough"][2] == "stipend"
 
 
 @pytest.mark.parametrize(
