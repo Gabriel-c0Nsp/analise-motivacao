@@ -1,8 +1,11 @@
 import matplotlib
 import pandas as pd
 import pytest
+from PIL import Image
 
 matplotlib.use("Agg")
+
+import matplotlib.pyplot as plt  # noqa: E402
 
 from survey.descriptive import compare_freq, crosstab_rowperc, freq_table  # noqa: E402
 from survey.loading import load_all  # noqa: E402
@@ -15,6 +18,8 @@ from survey.ml import (  # noqa: E402
     logistic_coefficients,
 )
 from survey.plots import (  # noqa: E402
+    REPORT_DPI,
+    REPORT_FONT_SIZE,
     plot_cluster_profile,
     plot_coefficients,
     plot_compare,
@@ -24,6 +29,8 @@ from survey.plots import (  # noqa: E402
     plot_freq,
     plot_model_comparison,
     plot_silhouette,
+    save_figure,
+    use_report_style,
 )
 from survey.scores import build_scores  # noqa: E402
 from survey.stats import compare_datasets  # noqa: E402
@@ -63,7 +70,8 @@ def test_perfil_escreve_o_valor_original_em_cada_celula(frame):
 
     textos = [t.get_text() for t in figura.axes[0].texts]
     assert len(textos) == perfil.size
-    assert "%.2f" % perfil.loc["works"].iloc[1] in textos
+    # Vírgula decimal, porque a figura vai para um texto em português.
+    assert ("%.2f" % perfil.loc["works"].iloc[1]).replace(".", ",") in textos
 
 
 def test_perfil_normaliza_por_linha_e_nao_pela_tabela_inteira():
@@ -145,7 +153,7 @@ def test_freq_escreve_contagem_e_percentual_em_cada_barra(datasets):
 
     textos = [t.get_text() for t in figura.axes[0].texts]
     assert len(textos) == len(tabela)
-    assert "9 (31.0%)" in textos
+    assert "9 (31,0%)" in textos
 
 
 def test_crosstab_desenha_uma_barra_por_casa_da_tabela(datasets):
@@ -198,3 +206,74 @@ def test_dendrograma_recusa_nomes_em_numero_diferente_dos_blocos(frame):
 
 def test_dendrograma_sem_nomes_nao_desenha_legenda(frame):
     assert plot_dendrogram(frame).axes[0].get_legend() is None
+
+
+def test_mapa_de_calor_usa_o_rotulo_legivel_no_eixo(frame):
+    grupos = cluster_labels(frame, k=3)
+    perfil = cluster_profile(frame, grupos, extras=["dropped_courses"])
+    figura = plot_cluster_profile(perfil)
+    eixo = figura.axes[0]
+
+    rotulos = [texto.get_text() for texto in eixo.get_yticklabels()]
+    assert "Ansiedade, estresse ou esgotamento" in rotulos
+    assert "Já trancou disciplinas" in rotulos
+    assert "burnout" not in rotulos
+    plt.close(figura)
+
+
+def test_estilo_do_relatorio_usa_times_new_roman_no_corpo_declarado():
+    with plt.rc_context():
+        rc = use_report_style()
+
+        assert rc["font.serif"][0] == "Times New Roman"
+        assert rc["font.family"] == ["serif"]
+        # O corpo vale para todo texto do desenho, e não só para o padrão.
+        tamanhos = ["font.size", "axes.labelsize", "axes.titlesize",
+                    "xtick.labelsize", "ytick.labelsize", "legend.fontsize"]
+        assert [rc[chave] for chave in tamanhos] == [REPORT_FONT_SIZE] * len(tamanhos)
+        assert rc["savefig.dpi"] == REPORT_DPI
+
+
+def test_estilo_do_relatorio_aceita_outro_corpo():
+    with plt.rc_context():
+        rc = use_report_style(size=9)
+
+        assert rc["font.size"] == 9
+        assert rc["legend.fontsize"] == 9
+
+
+def test_estilo_do_relatorio_alcanca_o_texto_desenhado(datasets):
+    with plt.rc_context():
+        use_report_style()
+        figura = plot_freq(freq_table(datasets["students_2025_06"], "works"))
+        eixo = figura.axes[0]
+
+        assert eixo.xaxis.label.get_fontsize() == REPORT_FONT_SIZE
+        assert [t.get_fontsize() for t in eixo.texts] == [REPORT_FONT_SIZE] * len(eixo.texts)
+        assert eixo.get_xticklabels()[0].get_fontname() == "Times New Roman"
+        plt.close(figura)
+
+
+def test_nenhuma_figura_escreve_titulo_por_conta_propria(frame, datasets):
+    figuras = [
+        plot_silhouette(cluster_scan(frame, k_range=range(2, 4))),
+        plot_dendrogram(frame),
+        plot_freq(freq_table(datasets["students_2025_06"], "works")),
+        plot_dataset_comparison(
+            compare_datasets(datasets["students_2025_06"], frame)
+        ),
+    ]
+
+    # A legenda numerada abaixo da figura, no relatório, já identifica cada uma.
+    assert [figura.axes[0].get_title() for figura in figuras] == [""] * len(figuras)
+    for figura in figuras:
+        plt.close(figura)
+
+
+def test_grava_a_figura_em_300_dpi(tmp_path, datasets):
+    figura = plot_freq(freq_table(datasets["students_2025_06"], "works"))
+    caminho = save_figure(figura, tmp_path / "figura.png")
+    plt.close(figura)
+
+    with Image.open(caminho) as imagem:
+        assert [round(eixo) for eixo in imagem.info["dpi"]] == [REPORT_DPI, REPORT_DPI]
