@@ -164,3 +164,27 @@ def test_logistic_coefficients_sai_ordenado_pelo_modulo(frame):
 
 def test_random_state_e_o_mesmo_em_todo_o_modulo():
     assert RANDOM_STATE == 42
+
+
+def test_cluster_profile_nomeia_os_grupos_e_conta_o_tamanho(frame):
+    grupos = cluster_labels(frame, k=3)
+    perfil = cluster_profile(
+        frame, grupos, names=["Período inicial", "Veteranos", "Participantes"]
+    )
+    assert list(perfil.columns) == [
+        "Período inicial (n=10)",
+        "Veteranos (n=11)",
+        "Participantes (n=18)",
+    ]
+
+
+def test_cluster_profile_sem_nomes_mantem_o_numero_do_grupo(frame):
+    grupos = cluster_labels(frame, k=3)
+    perfil = cluster_profile(frame, grupos)
+    assert list(perfil.columns) == ["grupo 0 (n=10)", "grupo 1 (n=11)", "grupo 2 (n=18)"]
+
+
+def test_cluster_profile_recusa_quantidade_de_nomes_diferente_da_particao(frame):
+    grupos = cluster_labels(frame, k=3)
+    with pytest.raises(ValueError, match="3 grupo"):
+        cluster_profile(frame, grupos, names=["um", "dois"])

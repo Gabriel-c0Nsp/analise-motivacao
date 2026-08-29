@@ -162,18 +162,32 @@ def cluster_labels(dataset, k, method="kmeans", features=None):
     return pd.Series(labels, index=index, name="cluster")
 
 
-def cluster_profile(dataset, labels, features=None, extras=()):
+def cluster_profile(dataset, labels, features=None, extras=(), names=None):
     """Média de cada variável por grupo, com o tamanho do grupo no cabeçalho.
 
     `extras` acrescenta variáveis que ficaram fora da clusterização, para ver
     como os desfechos se distribuem entre grupos formados sem olhar para eles.
+
+    `names` nomeia os grupos na ordem do rótulo, do menor para o maior. Sem os
+    nomes a coluna sai como "grupo 0", que identifica a partição mas não diz
+    nada a quem lê a tabela fora do notebook. O tamanho continua saindo da
+    contagem, e não do nome, para o cabeçalho não poder discordar dos dados.
     """
     frame = resolve(dataset)
     linhas = _features(frame, features) + list(extras)
 
     perfil = frame.loc[labels.index, linhas].groupby(labels).mean().T
+    grupos = list(perfil.columns)
+
+    if names is None:
+        names = ["grupo %s" % grupo for grupo in grupos]
+    elif len(names) != len(grupos):
+        raise ValueError(
+            "a partição tem %d grupo(s) e vieram %d nome(s)" % (len(grupos), len(names))
+        )
+
     perfil.columns = [
-        "grupo %s (n=%d)" % (grupo, (labels == grupo).sum()) for grupo in perfil.columns
+        "%s (n=%d)" % (nome, (labels == grupo).sum()) for grupo, nome in zip(grupos, names)
     ]
     return perfil
 
