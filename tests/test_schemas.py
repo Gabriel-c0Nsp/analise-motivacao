@@ -5,6 +5,7 @@ from survey.schemas import (
     BINARY,
     BLOCKS,
     CAVEATS,
+    LABELS,
     LIKERT_5,
     LIKERT_ORDER,
     RATING_5,
@@ -241,3 +242,23 @@ def test_ressalvas_apontam_para_variaveis_existentes():
     for schema in SCHEMAS.values():
         declaradas |= set(schema["columns"])
     assert set(CAVEATS) <= declaradas
+
+
+def test_toda_coluna_declarada_tem_rotulo_legivel():
+    for nome, schema in SCHEMAS.items():
+        for coluna in schema["columns"]:
+            assert coluna in LABELS, (nome, coluna)
+
+
+def test_as_colunas_derivadas_tambem_tem_rotulo_legivel():
+    for coluna in ["considered_quitting_bin", "has_stipend", "score_belonging", "score_prospects"]:
+        assert coluna in LABELS
+
+
+def test_rotulo_nao_e_traducao_do_nome_canonico():
+    # O rótulo diz o que o item mede, com as palavras da pergunta. Traduzir o
+    # identificador daria "sem_folego" no lugar de "Ansiedade, estresse ou
+    # esgotamento", que é o que a pessoa de fato respondeu.
+    assert LABELS["burnout"] == "Ansiedade, estresse ou esgotamento"
+    assert LABELS["keeps_up"] == "Acompanha os conteúdos em sala"
+    assert LABELS["score_prospects"] == "Perspectiva profissional"

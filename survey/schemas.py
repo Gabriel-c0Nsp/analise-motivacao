@@ -97,6 +97,55 @@ BLOCKS = {
 # bolsa.
 STIPEND_ROLE = "Bolsista"
 
+# Rótulo legível de cada variável, para eixo de gráfico, cabeçalho de tabela e
+# qualquer saída que vá para quem lê o texto em vez do código. Não é tradução do
+# nome canônico: é o que o item mede, dito de forma curta o bastante para caber
+# num eixo. O nome canônico continua sendo a única forma de acessar a coluna.
+LABELS = {
+    "academic_output": "Gerou produção acadêmica",
+    "activity_role": "Papel na atividade",
+    "activity_type": "Tipo de atividade",
+    "age_range": "Faixa etária",
+    "burnout": "Ansiedade, estresse ou esgotamento",
+    "career_clarity": "Clareza sobre a área de atuação",
+    "career_contribution": "Contribuição para a formação profissional",
+    "change_major": "Considera trocar de curso",
+    "considered_quitting": "Pensou em desistir da atividade",
+    "considered_quitting_bin": "Pensou em desistir da atividade",
+    "curriculum_rating": "Avaliação da grade curricular",
+    "dropped_courses": "Já trancou disciplinas",
+    "facilities_rating": "Avaliação da infraestrutura",
+    "financial_hardship": "Enfrenta dificuldades financeiras",
+    "financial_impact": "Impacto das dificuldades financeiras",
+    "good_supervision": "Orientação adequada do orientador",
+    "has_scholarship": "Recebe bolsa ou auxílio",
+    "has_stipend": "Recebe bolsa",
+    "job_ready": "Preparo para o mercado de trabalho",
+    "keeps_up": "Acompanha os conteúdos em sala",
+    "knows_opportunities": "Conhece as oportunidades",
+    "lab_helped": "A atividade ajudou a compreender o conteúdo",
+    "lab_helps": "A atividade ajuda a compreender o conteúdo",
+    "lacks_time": "Falta de tempo para conciliar",
+    "meets_requirements": "Atende aos requisitos de ingresso",
+    "multiple_projects": "Participa de mais de um projeto",
+    "participates_extra": "Participa de atividades extracurriculares",
+    "participates_lab": "Participa de atividade acadêmica",
+    "recognition_motivates": "O reconhecimento motiva",
+    "recommended_to_peers": "Recomendou a colegas",
+    "reduces_dropout": "Atividades reduzem a evasão",
+    "school_base": "Boa base de aprendizado escolar",
+    "score_belonging": "Pertencimento",
+    "score_prospects": "Perspectiva profissional",
+    "soft_skills": "Desenvolvimento de habilidades interpessoais",
+    "stipend_enough": "A bolsa cobre as despesas",
+    "teaching_quality": "Satisfação com a qualidade das aulas",
+    "term": "Período em curso",
+    "welcomed_by_faculty": "Acolhimento por professores e monitores",
+    "welcoming_environment": "Meio acadêmico acolhedor",
+    "workload_rating": "Avaliação da carga horária",
+    "works": "Trabalha no contraturno",
+}
+
 SCHEMAS = {
     "students_2025_06": {
         "file": "dados/alunos_geral.csv",
